@@ -24,6 +24,10 @@
 \usepackage{Latex-Pro/latex-pro-calculus}
 
 
+\usepackage[utf8]{inputenc}
+\input{frontpage}
+
+
 \geometry{left=3cm, right=6cm, top=3cm, bottom=3cm, marginparwidth=4cm} 
 
 
@@ -47,6 +51,8 @@
 \date{09. November, 2026}  
 \begin{document}
 
+\makefrontpage
+
 \maketitle
 \begin{problem}[A3 Merging Words]
 \end{problem}
@@ -65,6 +71,33 @@ We let M[i,j] denote the boolean value that is true if and only if $z_1 z_2 ... 
 	\end{cases}
 	\label{piecewise}
 \end{equation}
+
+\begin{pseudo}[span]
+	String x = " SHOE";
+        String y = " EARS";
+        String z = " SEAHORSE";
+
+        boolean[][] M = new boolean[x.length()][y.length()];
+
+        for(int i = 0; i < M.length; i++) 
+            for(int j = 0; j < M[i].length; j++) 
+
+                if(i == 0 && j == 0)
+                    M[i][j] = true;
+
+                if(i == 0 && j > 0)
+                    M[i][j] = z.charAt(j) == y.charAt(j) && M[0][j - 1];
+
+                if(i > 0 && j == 0)
+                    M[i][j] = z.charAt(i) == x.charAt(i) && M[i - 1][0];
+
+                if(i > 0 && j > 0)
+                    M[i][j] = (z.charAt(i + j) == y.charAt(j) && M[i][j - 1]) ||
+                            (z.charAt(i+j) == x.charAt(i) && M[i-1][j]);
+            
+        
+    
+\end{pseudo}
 
 We can fill out the table with
 
