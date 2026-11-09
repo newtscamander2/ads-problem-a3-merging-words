@@ -52,14 +52,15 @@
 
 \section*{a)}
 
-$$
+\begin{equation}
 	M[i,j] = \begin{cases}
 		true                                                              & \text{if } i=0 \land j=0   \\
 		z_j = y_j \land M[0,j-1] \                                        & \text{if } i=0 \land j > 0 \\
 		z_i = x_i \land M[i-1,0] \                                        & \text{if } i>0 \land j = 0 \\
 		(z_{i+j} = y_j \land M[i,j-1]) \lor (z_{i+j} = x_i \lor M[i-1,j]) & \text{if } i>0 \land j > 0
 	\end{cases}
-$$
+	\label{piecewise}
+\end{equation}
 
 \begin{center}
 	\begin{tabular}{c  c | c c c c c}
@@ -77,26 +78,33 @@ $$
 \end{center}
 
 \section*{b)}
+To dynamically find out if the word \variable{z} is the merge of two words \variable{x}, \variable{y}, we have to create a table of the words. We go from left to right finding the answers for the previous inputs.
+
+The different if-statements are made from the piecewise-function given in \bookeq{\ref{piecewise}}.
+
 \begin{pseudo}[span]
-function Merge(M, x, y, z, i, j)
+function Is-Merge(M, x, y, z, i, j)
 	if i == 0 and j == 0 then
 		M[i,j] = true
+
 		return true
 	end
 
-	for a = 0 -> x_{length} //Bottom up programming :)
-		for b = 0 -> y_{length}
-			Merge(M, x, y, z, a, b)
+	for a = 0 -> j //Bottom up programming :)
+		for b = 0 -> i
+			Merge(M, x, y, z, b, a)
 		end
 	end
 
 	if i == 0 and j > 0 then
 		M[i,j] = z_j == y_j and z_j == M[0,j-1]
+
 		return M[i,j]
 	end
 
 	if i > 0 and j == 0 then
 		M[i,j] = z_i == x_i and z_i == M[i-1,0]
+
 		return M[i,j]
 	end
 
@@ -105,6 +113,18 @@ function Merge(M, x, y, z, i, j)
 
 		return M[i,j]
 	end
+end
+\end{pseudo}
+The \method{Is-Merge} function runs through every letter in both \variable{x} and \variable{y}. It is therefore $O(n+m)$ where $n$ is the length of \variable{x} and $m$ is the length of \variable{y}.
+
+\section*{c)}
+To also report the indexes of \variable{z} that constitute to \variable{x} we can use the idea from the book in finding the longest common subsequence.
+
+Here they use the idea of storing another array \variable{B} in order to store in which direction the different inputs were influenced.
+
+\begin{pseudo}
+function Is-Merge-Constituted(M, B, x, y, z, i, j)
+
 end
 \end{pseudo}
 

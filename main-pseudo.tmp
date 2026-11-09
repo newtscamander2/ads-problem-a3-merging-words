@@ -1,28 +1,3 @@
-function Merge(M, x, y, z, i, j)
-    if i == 0 and j == 0 then
-        M[i,j] = true
-        return true
-    end
+function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
 
-    for a = 0 $\to$ $\latexprocodemath{x}_{\latexprocodemath{length}}$ //Bottom up programming :)
-        for b = 0 $\to$ $\latexprocodemath{y}_{\latexprocodemath{length}}$
-            Merge(M, x, y, z, a, b)
-        end
-    end
-
-    if i == 0 and j $>$ 0 then
-        M[i,j] = $\latexprocodemath{z}_{\latexprocodemath{j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and $\latexprocodemath{z}_{\latexprocodemath{j}}$ == M[0,j-1]
-        return M[i,j]
-    end
-
-    if i $>$ 0 and j == 0 then
-        M[i,j] = $\latexprocodemath{z}_{\latexprocodemath{i}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and $\latexprocodemath{z}_{\latexprocodemath{i}}$ == M[i-1,0]
-        return M[i,j]
-    end
-
-    if i $>$ 0 and j $>$ 0 then
-        M[i,j] = ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and $\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == M[i,j-1]) and ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and $\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == M[i-1,j])
-
-        return M[i,j]
-    end
 end
