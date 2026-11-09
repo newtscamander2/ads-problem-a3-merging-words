@@ -51,6 +51,15 @@
 
 \section*{a}
 
+$$
+	M[i,j] = \begin{cases}
+		true                                                              & \text{if } i=0 \land j=0   \\
+		z_j = y_j \land M[0,j-1] \                                        & \text{if } i=0 \land j > 0 \\
+		z_i = x_i \land M[i-1,0] \                                        & \text{if } i>0 \land j = 0 \\
+		(z_{i+j} = y_j \land M[i,j-1]) \lor (z_{i+j} = x_i \lor M[i-1,j]) & \text{if } i>0 \land j > 0
+	\end{cases}
+$$
+
 \begin{center}
 	\begin{tabular}{c  c | c c c c c}
 		  &        &   & E & A & R & S \\
