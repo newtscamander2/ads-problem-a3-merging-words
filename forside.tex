@@ -1,0 +1,483 @@
+% =====================================================================
+%  Forside: Algorithms and Datastructures -- Handin 7: Merging Words
+%  Kompilér med XeLaTeX eller LuaLaTeX (så kommer Comic Sans / Comic Neue
+%  med). pdfLaTeX virker også, men så bliver fonten en kedelig sans-serif.
+% =====================================================================
+\documentclass[a4paper,11pt]{article}
+
+% ---------------------------------------------------------------------
+%  >>> SKIFT DATOEN HER <<<
+%  Fx: \newcommand{\afleveringsdato}{16. november 2026}
+% ---------------------------------------------------------------------
+\newcommand{\afleveringsdato}{\today}
+
+\title{Algorithms and Datastructures\\Handin 7: Merging Words}
+\author{
+    202605673 Lukas Alstrup \\
+    202605116 Thomas Seeberg Hansen \\
+    202606296 Frederik Dommer Løvbjerg Plum
+}
+\date{\afleveringsdato}
+
+% ---------------------------------------------------------------------
+%  Pakker
+% ---------------------------------------------------------------------
+\usepackage[margin=0pt]{geometry}
+\usepackage{iftex}
+\usepackage[dvipsnames,svgnames]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,shapes.symbols,shapes.callouts,shadows,
+                decorations.text,decorations.pathmorphing,calc,positioning}
+\usepackage{twemojis}   % farvede emojis som virker i alle engines
+
+% ---------------------------------------------------------------------
+%  Comic Sans (eller den nærmeste ting vi kan finde)
+% ---------------------------------------------------------------------
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \IfFileExists{comicneue.sty}
+    {\usepackage{comicneue}\renewcommand{\familydefault}{\sfdefault}}
+    {\renewcommand{\familydefault}{\sfdefault}}
+  \newcommand{\comicmono}{\ttfamily}
+\else
+  \usepackage{fontspec}
+  \IfFontExistsTF{Comic Sans MS}
+    {\setmainfont{Comic Sans MS}}
+    {\IfFontExistsTF{Comic Neue}
+      {\setmainfont{Comic Neue}}
+      {\IfFontExistsTF{ComicNeue-Regular.otf}
+        {\setmainfont{ComicNeue}[Extension=.otf,UprightFont=*-Regular,
+                                 BoldFont=*-Bold]}
+        {\renewcommand{\familydefault}{\sfdefault}}}}
+  \newcommand{\comicmono}{\ttfamily}
+\fi
+
+\pagestyle{empty}
+
+% ---------------------------------------------------------------------
+%  Farver
+% ---------------------------------------------------------------------
+\definecolor{rbRed}{HTML}{FF3B3B}
+\definecolor{rbOrange}{HTML}{FF9F1C}
+\definecolor{rbYellow}{HTML}{FFE14D}
+\definecolor{rbGreen}{HTML}{3DDC84}
+\definecolor{rbBlue}{HTML}{2D9CFF}
+\definecolor{rbIndigo}{HTML}{5B4BFF}
+\definecolor{rbViolet}{HTML}{C04BFF}
+\definecolor{rbPink}{HTML}{FF5FC8}
+\definecolor{skyTop}{HTML}{7FD8FF}
+\definecolor{skyBot}{HTML}{FFF3B0}
+\definecolor{grass}{HTML}{4CC94C}
+\definecolor{road}{HTML}{3A3A46}
+\definecolor{foxOrange}{HTML}{FF8A1F}
+\definecolor{wolfBlue}{HTML}{6E8FD8}
+\definecolor{coonGrey}{HTML}{9A9AAE}
+\definecolor{shoeCol}{HTML}{FF5FC8}
+\definecolor{earsCol}{HTML}{2D9CFF}
+
+% ---------------------------------------------------------------------
+%  Regnbuetekst: hvert bogstav får sin egen farve
+% ---------------------------------------------------------------------
+\ExplSyntaxOn
+\int_new:N \l_rb_int
+\clist_const:Nn \c_rb_colors_clist
+  {rbRed,rbOrange,rbYellow!80!black,rbGreen!80!black,rbBlue,rbIndigo,rbViolet,rbPink}
+\NewDocumentCommand{\rainbowtext}{m}
+  {
+    \str_map_inline:nn {#1}
+      {
+        \str_if_eq:nnTF {##1} {~}
+          { \c_space_tl }
+          {
+            \int_incr:N \l_rb_int
+            \textcolor{\clist_item:Nn \c_rb_colors_clist
+              { \int_mod:nn {\l_rb_int} {8} + 1 }}{##1}
+          }
+      }
+  }
+\ExplSyntaxOff
+
+% Ordregn: første og anden del af et sammensat ord
+\newcommand{\wa}[1]{\textcolor{shoeCol}{#1}}
+\newcommand{\wb}[1]{\textcolor{earsCol}{#1}}
+
+% ---------------------------------------------------------------------
+%  Emoji-genvej
+% ---------------------------------------------------------------------
+\newcommand{\emo}[2][1cm]{\twemoji[height=#1]{#2}}
+
+% ---------------------------------------------------------------------
+%  TikZ: fursonaer
+% ---------------------------------------------------------------------
+\tikzset{
+  outline/.style={draw=black, line width=1.1pt, line join=round},
+  % ----- Lux, the Diesel Fox (Lukas) -----
+  fox/.pic={
+    % ører
+    \fill[foxOrange,outline] (-0.95,0.35) -- (-0.8,1.55) -- (-0.15,0.85) -- cycle;
+    \fill[foxOrange,outline] (0.95,0.35) -- (0.8,1.55) -- (0.15,0.85) -- cycle;
+    \fill[black!80] (-0.82,0.6) -- (-0.78,1.3) -- (-0.4,0.9) -- cycle;
+    \fill[black!80] (0.82,0.6) -- (0.78,1.3) -- (0.4,0.9) -- cycle;
+    % hoved
+    \fill[foxOrange,outline] (0,0) circle (1);
+    \begin{scope}
+      \clip (0,0) circle (1);
+      \fill[white] (-1.1,-0.05) .. controls (-0.5,-0.15) and (-0.2,0.05) .. (0,-0.25)
+                   .. controls (0.2,0.05) and (0.5,-0.15) .. (1.1,-0.05) -- (1.1,-1.1) -- (-1.1,-1.1) -- cycle;
+    \end{scope}
+    \draw[outline] (0,0) circle (1);
+    % kinder
+    \fill[rbPink!60] (-0.6,-0.3) circle (0.14) (0.6,-0.3) circle (0.14);
+    % "deal with it" pixel-solbriller
+    \foreach \x/\y in {-0.75/0.25,-0.6/0.25,-0.45/0.25,-0.3/0.25,-0.15/0.25,0/0.25,
+                       0.15/0.25,0.3/0.25,0.45/0.25,0.6/0.25,
+                       -0.6/0.1,-0.45/0.1,-0.3/0.1,0.15/0.1,0.3/0.1,0.45/0.1,
+                       -0.45/-0.05,-0.3/-0.05,0.3/-0.05,0.45/-0.05}
+      {\fill[black] (\x,\y) rectangle ++(0.15,0.15);}
+    \fill[white] (-0.6,0.25) rectangle ++(0.15,0.15);
+    \fill[white] (0.15,0.25) rectangle ++(0.15,0.15);
+    % næse og mund
+    \fill[black] (0,-0.38) ellipse (0.13 and 0.09);
+    \draw[line width=1pt] (-0.18,-0.55) .. controls (-0.09,-0.65) .. (0,-0.5)
+                          .. controls (0.09,-0.65) .. (0.18,-0.55);
+  },
+  % ----- Tidewolf (Thomas) -----
+  wolf/.pic={
+    % ører
+    \fill[wolfBlue,outline] (-0.95,0.3) -- (-0.7,1.65) -- (-0.1,0.85) -- cycle;
+    \fill[wolfBlue,outline] (0.95,0.3) -- (0.7,1.65) -- (0.1,0.85) -- cycle;
+    \fill[rbPink!50] (-0.78,0.55) -- (-0.68,1.3) -- (-0.35,0.85) -- cycle;
+    \fill[rbPink!50] (0.78,0.55) -- (0.68,1.3) -- (0.35,0.85) -- cycle;
+    % hoved
+    \fill[wolfBlue,outline] (0,0) circle (1);
+    % pandetegn
+    \fill[wolfBlue!60!black] (0,0.95) -- (-0.15,0.55) -- (0,0.35) -- (0.15,0.55) -- cycle;
+    % snude
+    \fill[white,outline] (0,-0.45) ellipse (0.55 and 0.42);
+    % øjne
+    \fill[white,outline] (-0.38,0.18) ellipse (0.2 and 0.24);
+    \fill[white,outline] (0.38,0.18) ellipse (0.2 and 0.24);
+    \fill[rbIndigo] (-0.36,0.15) circle (0.12);
+    \fill[rbIndigo] (0.4,0.15) circle (0.12);
+    \fill[white] (-0.32,0.2) circle (0.04) (0.44,0.2) circle (0.04);
+    % næse, mund, tunge
+    \fill[black] (0,-0.25) ellipse (0.17 and 0.11);
+    \fill[rbRed!80,outline] (0.05,-0.62) .. controls (0.05,-0.85) and (0.3,-0.85) .. (0.3,-0.62) -- cycle;
+    \draw[line width=1pt] (-0.25,-0.55) .. controls (-0.1,-0.68) .. (0,-0.4)
+                          .. controls (0.1,-0.68) .. (0.25,-0.55);
+    % høretelefoner
+    \draw[rbViolet,line width=3.5pt] (-1.02,0.1) arc (180:0:1.02 and 1.2);
+    \fill[rbViolet,outline] (-1.08,0.05) ellipse (0.18 and 0.32);
+    \fill[rbViolet,outline] (1.08,0.05) ellipse (0.18 and 0.32);
+    \fill[rbYellow] (-1.08,0.05) circle (0.07) (1.08,0.05) circle (0.07);
+  },
+  % ----- Trash Panda (Frederik) -----
+  raccoon/.pic={
+    % ører
+    \fill[coonGrey,outline] (-0.65,0.75) circle (0.33);
+    \fill[coonGrey,outline] (0.65,0.75) circle (0.33);
+    \fill[black!70] (-0.65,0.75) circle (0.17) (0.65,0.75) circle (0.17);
+    % hoved
+    \fill[coonGrey,outline] (0,0) ellipse (1.05 and 0.95);
+    % hvide øjenbryn
+    \fill[white] (-0.45,0.42) ellipse (0.3 and 0.1) (0.45,0.42) ellipse (0.3 and 0.1);
+    % maske
+    \fill[black!85] (-0.98,0.15) .. controls (-0.7,0.4) and (-0.2,0.35) .. (0,0.05)
+                   .. controls (0.2,0.35) and (0.7,0.4) .. (0.98,0.15)
+                   .. controls (0.8,-0.25) and (0.3,-0.2) .. (0,-0.12)
+                   .. controls (-0.3,-0.2) and (-0.8,-0.25) .. cycle;
+    % øjne
+    \fill[white] (-0.42,0.1) circle (0.13) (0.42,0.1) circle (0.13);
+    \fill[black] (-0.4,0.08) circle (0.07) (0.44,0.08) circle (0.07);
+    % snude
+    \fill[white,outline] (0,-0.45) ellipse (0.42 and 0.33);
+    \fill[black] (0,-0.33) ellipse (0.13 and 0.09);
+    \draw[line width=1pt] (-0.15,-0.55) .. controls (-0.07,-0.63) .. (0,-0.48)
+                          .. controls (0.07,-0.63) .. (0.15,-0.55);
+    % propelhue
+    \fill[rbRed,outline]    (-0.75,0.72) arc (180:120:0.75) -- (0,0.72) -- cycle;
+    \fill[rbYellow,outline] (-0.375,1.37) arc (120:60:0.75) -- (0,0.72) -- cycle;
+    \fill[rbBlue,outline]   (0.375,1.37) arc (60:0:0.75) -- (0,0.72) -- cycle;
+    \fill[rbGreen,outline] (-0.8,0.65) rectangle (0.8,0.78);
+    \draw[line width=1.2pt] (0,1.47) -- (0,1.62);
+    \fill[rbRed,outline] (-0.45,1.62) .. controls (-0.2,1.75) .. (0,1.62)
+                          .. controls (-0.2,1.52) .. cycle;
+    \fill[rbBlue,outline] (0.45,1.62) .. controls (0.2,1.75) .. (0,1.62)
+                          .. controls (0.2,1.52) .. cycle;
+    \fill[rbYellow,outline] (0,1.62) circle (0.06);
+  },
+  % ----- E46 Touring (diesel, selvfølgelig) -----
+  pics/diesel/.style={code={
+    % røg
+    \foreach \i/\s/\g in {1/0.18/55,2/0.26/45,3/0.35/35,4/0.45/25,5/0.55/18}
+      {\fill[black!\g!gray,opacity=0.85] (-2.45-0.55*\i, 0.12+0.18*\i) circle (\s);}
+    % tagræling
+    \draw[black!70, line width=2.2pt, line cap=round] (-1.95,1.68) -- (0.15,1.68);
+    \foreach \x in {-1.85,-0.9,0.05} {\draw[black!70, line width=1.6pt] (\x,1.55) -- (\x,1.68);}
+    % karosseri: langt fladt tag, næsten lodret bagklap, lav snude
+    \fill[#1,outline] (-2.25,0.05)
+        -- (-2.28,0.55) .. controls (-2.27,0.85) .. (-2.2,1.05)
+        -- (-2.05,1.5) .. controls (-2.0,1.56) .. (-1.85,1.57)
+        -- (0.25,1.57) .. controls (0.4,1.56) .. (0.5,1.5)
+        -- (1.05,1.0) .. controls (1.5,0.93) .. (2.05,0.82)
+        .. controls (2.25,0.78) and (2.3,0.55) .. (2.28,0.3)
+        -- (2.25,0.05) -- cycle;
+    % hjulkasser (skæres ud i baggrundsfarve lige før hjulene)
+    % sidelinje / liste
+    \draw[black!60, line width=0.9pt] (-2.25,0.62) -- (2.25,0.62);
+    \fill[black!75] (-2.25,0.05) rectangle (2.25,0.2);
+    % vinduer: bagerste rude, bagdør med "Hofmeister-knæk", fordør
+    \fill[skyTop!70,outline] (-2.02,1.43) -- (-2.12,1.02) -- (-1.42,1.02) -- (-1.42,1.43) -- cycle;
+    \fill[skyTop!70,outline] (-1.3,1.43) -- (-1.3,1.2) .. controls (-1.28,1.05) .. (-1.12,1.02)
+        -- (-0.15,1.02) -- (-0.15,1.43) -- cycle;
+    \fill[skyTop!70,outline] (-0.03,1.43) -- (-0.03,1.02) -- (0.95,1.02) -- (0.4,1.43) -- cycle;
+    \draw[black!40, line width=1.6pt] (-1.42,1.02) -- (-1.42,1.43);
+    % døre + håndtag
+    \draw[black!55, line width=0.7pt] (-0.09,0.25) -- (-0.09,1.0) (-1.36,0.25) -- (-1.36,1.0)
+                                      (1.05,0.25) -- (1.0,0.98);
+    \fill[black!60] (-0.6,0.82) rectangle ++(0.22,0.05) (0.6,0.82) rectangle ++(0.22,0.05);
+    % sidespejl
+    \fill[#1!80!black,outline] (0.92,1.0) -- (1.12,1.12) -- (1.15,1.0) -- cycle;
+    % forlygte (dobbelt rund under glas) + blink
+    \fill[white,outline] (1.9,0.66) .. controls (2.1,0.66) .. (2.22,0.62) -- (2.24,0.5) -- (1.92,0.52) -- cycle;
+    \fill[rbYellow] (2.03,0.58) circle (0.045) (2.15,0.57) circle (0.045);
+    \fill[rbOrange] (2.24,0.38) rectangle (2.28,0.46);
+    % baglygte
+    \fill[rbRed,outline] (-2.28,0.68) -- (-2.2,1.0) -- (-2.08,1.0) -- (-2.12,0.68) -- cycle;
+    % udstødning
+    \fill[gray,outline] (-2.45,0.06) rectangle (-2.18,0.18);
+    % tekst
+    \node[font=\bfseries\footnotesize, text=white] at (-0.65,0.4) {DIESEL};
+    \node[font=\bfseries\tiny, text=white, rotate=80] at (-2.18,0.38) {320d};
+    % hjul (femeget fælge)
+    \foreach \x in {-1.45,1.4}{
+      \fill[black,outline] (\x,0.02) circle (0.45);
+      \fill[gray!45] (\x,0.02) circle (0.27);
+      \foreach \a in {90,162,234,306,18} {\draw[gray!80!black, line width=1.6pt] (\x,0.02) -- ++(\a:0.25);}
+      \fill[black!70] (\x,0.02) circle (0.07);}
+  }},
+  sticky/.style={draw=black, line width=0.8pt, rounded corners=2pt,
+                 drop shadow={opacity=0.35}, inner sep=6pt, align=center,
+                 font=\normalsize},
+  card/.style={draw=black, line width=1.5pt, rounded corners=12pt,
+               drop shadow={opacity=0.4, shadow xshift=3pt, shadow yshift=-3pt},
+               minimum width=5.9cm, minimum height=8.4cm},
+}
+
+% =====================================================================
+\begin{document}
+\makeatletter
+\begin{tikzpicture}[remember picture, overlay]
+  \coordinate (C) at (current page.center);
+  \begin{scope}[shift={(C)}]
+
+  % ------------------------------------------------------------ baggrund
+  \shade[top color=skyTop, bottom color=skyBot] (-10.6,-15) rectangle (10.6,15);
+
+  % konfetti (fast seed, så den ser ens ud hver gang)
+  \pgfmathsetseed{67}
+  \foreach \i in {1,...,140}{
+    \pgfmathsetmacro{\x}{rand*10.4}
+    \pgfmathsetmacro{\y}{rand*14.6}
+    \pgfmathsetmacro{\r}{0.04+0.07*rnd}
+    \pgfmathtruncatemacro{\c}{mod(\i,8)}
+    \ifcase\c \def\cc{rbRed}\or\def\cc{rbOrange}\or\def\cc{rbYellow}\or\def\cc{rbGreen}
+    \or\def\cc{rbBlue}\or\def\cc{rbIndigo}\or\def\cc{rbViolet}\else\def\cc{rbPink}\fi
+    \fill[\cc, opacity=0.75] (\x,\y) circle (\r);
+  }
+
+
+  % ------------------------------------------------------------ ordregn
+  % Det regner med sammensatte (engelske) ord -- hvert ord farvet efter sine
+  % to dele, præcis ligesom SHOE + EARS = SEAHORSE.
+  \pgfmathdeclarerandomlist{sammensat}{%
+    {\wa{Rain}\wb{bow}}{\wa{Sea}\wb{horse}}{\wa{Key}\wb{board}}{\wa{Data}\wb{base}}%
+    {\wa{Back}\wb{track}}{\wa{Sun}\wb{glasses}}{\wa{Foot}\wb{ball}}{\wa{Over}\wb{flow}}%
+    {\wa{Note}\wb{book}}{\wa{Lap}\wb{top}}{\wa{Head}\wb{phones}}{\wa{Turbo}\wb{charger}}%
+    {\wa{Fire}\wb{wall}}{\wa{Hand}\wb{brake}}{\wa{Space}\wb{bar}}{\wa{Break}\wb{point}}%
+    {\wa{Work}\wb{space}}{\wa{Pass}\wb{word}}{\wa{Screen}\wb{shot}}{\wa{Time}\wb{stamp}}%
+    {\wa{Bottle}\wb{neck}}{\wa{Dead}\wb{line}}{\wa{Rain}\wb{drop}}{\wa{Rain}\wb{coat}}%
+    {\wa{Thunder}\wb{storm}}{\wa{Snow}\wb{flake}}{\wa{Sun}\wb{shine}}{\wa{Star}\wb{fish}}%
+    {\wa{Butter}\wb{fly}}{\wa{Pan}\wb{cake}}{\wa{Tooth}\wb{brush}}{\wa{Moon}\wb{light}}%
+    {\wa{Coffee}\wb{pot}}{\wa{Wolf}\wb{pack}}{\wa{Fox}\wb{hole}}{\wa{Gear}\wb{box}}%
+    {\wa{Wind}\wb{shield}}{\wa{Tail}\wb{pipe}}{\wa{Down}\wb{load}}{\wa{Soft}\wb{ware}}%
+    {\wa{Hard}\wb{ware}}{\wa{Mother}\wb{board}}{\wa{Home}\wb{work}}{\wa{Text}\wb{book}}%
+    {\wa{Mid}\wb{night}}{\wa{Class}\wb{room}}{\wa{Sleep}\wb{walk}}{\wa{Cup}\wb{cake}}}
+  \pgfmathsetseed{4242}
+  \foreach \row in {0,...,21}{
+    \foreach \col in {0,...,5}{
+      \pgfmathsetmacro{\x}{-9.0+3.6*\col+1.8*mod(\row,2)+0.8*rand}
+      \pgfmathsetmacro{\y}{-11.2+1.25*\row+0.3*rand}
+      \pgfmathrandomitem{\ord}{sammensat}
+      \draw[skyTop!30!rbBlue, opacity=0.35, line width=0.8pt, line cap=round]
+           (\x-0.35,\y+0.75) -- (\x-0.1,\y+0.25);
+      \node[rotate=-8, opacity=0.5, font=\small\bfseries] at (\x,\y) {\ord};
+    }
+  }
+
+  % ------------------------------------------------------------ regnbue
+  \foreach \r/\c [count=\k] in {9.6/rbRed,9.0/rbOrange,8.4/rbYellow,7.8/rbGreen,
+                                7.2/rbBlue,6.6/rbIndigo,6.0/rbViolet}
+    {\draw[\c, line width=17pt] (-\r,5.6) arc (180:0:\r);}
+  % skyer ved regnbuens fødder
+  \foreach \cx in {-7.8,7.8}{
+    \fill[white] (\cx-1.2,5.6) circle (0.75) (\cx,6.0) circle (1.0)
+         (\cx+1.2,5.6) circle (0.75) (\cx,5.3) ellipse (1.8 and 0.55);}
+
+  % ------------------------------------------------------------ titel
+  \node[fill=white, draw=black, line width=2pt, rounded corners=14pt,
+        drop shadow={opacity=0.4, shadow xshift=4pt, shadow yshift=-4pt},
+        inner xsep=16pt, inner ysep=12pt, rotate=-2, align=center]
+        (title) at (0,10.6)
+        {\fontsize{30}{36}\selectfont\bfseries\rainbowtext{Algorithms and}\\[2pt]
+         \fontsize{30}{36}\selectfont\bfseries\rainbowtext{Datastructures}};
+
+  % emojis rundt om titlen
+  \node[rotate=15]  at (-8.6,13.4) {\emo[1.4cm]{rainbow}};
+  \node[rotate=-12] at (8.6,13.4)  {\emo[1.4cm]{unicorn}};
+  \node[rotate=-20] at (-6.4,12.9) {\emo[0.9cm]{sparkles}};
+  \node[rotate=10]  at (6.4,12.9)  {\emo[0.9cm]{rocket}};
+  \node at (0,14.1) {\emo[0.9cm]{sun}};
+
+  % undertitel på et bånd
+  \node[fill=rbViolet, text=white, draw=black, line width=1.5pt,
+        signal, signal to=east and west, signal pointer angle=120,
+        inner xsep=18pt, inner ysep=8pt, rotate=1.5,
+        drop shadow={opacity=0.35}]
+        at (0,7.75)
+        {\Large\bfseries Handin 7: Merging Words \texttwemoji{scissors}\texttwemoji{memo}};
+
+  % ------------------------------------------------------------ SEAHORSE-merge
+  \node[font=\Large\bfseries, text=shoeCol!80!black] at (-7.8,5.9) {x = \textcolor{shoeCol}{SHOE}};
+  \node[font=\Large\bfseries, text=earsCol!80!black] at (7.8,5.9)  {y = \textcolor{earsCol}{EARS}};
+  \foreach \ch/\col [count=\k] in {S/shoeCol,E/earsCol,A/earsCol,H/shoeCol,
+                                   O/shoeCol,R/earsCol,S/earsCol,E/shoeCol}{
+    \node[fill=\col, text=white, draw=black, line width=1.2pt, rounded corners=4pt,
+          minimum size=0.95cm, font=\Large\bfseries,
+          rotate={(-1)^\k*5}] at ({(\k-4.5)*1.1},5.0) {\ch};
+  }
+  \node[font=\small\bfseries, fill=rbYellow, draw=black, rounded corners=3pt, rotate=-4]
+       at (6.6,4.9) {M[4,4] = T \texttwemoji{check mark button}};
+  \node[font=\small\bfseries, fill=white, draw=black, rounded corners=3pt, rotate=4]
+       at (-6.6,4.9) {z = SEAHORSE \texttwemoji{tropical fish}};
+
+  % ------------------------------------------------------------ fursona-kort
+  % Kort 1: Lukas
+  \node[card, top color=rbOrange!45, bottom color=rbYellow!50, rotate=3] (c1) at (-6.6,0.2) {};
+  \pic[scale=1.15, rotate=3] at ($(c1.center)+(0,1.75)$) {fox};
+  \node[rotate=3, align=center, text width=5.4cm] at ($(c1.center)+(0.05,-1.55)$)
+    {{\Large\bfseries Lux}\\[-1pt]
+     {\small the Diesel Fox \texttwemoji{fox}}\\[4pt]
+     {\bfseries Lukas Alstrup}\\
+     {\footnotesize\comicmono 202605673}\\[4pt]
+     {\footnotesize Superpower: Base cases\\Favourite $O$: $O(nm)$}};
+  \node[ellipse callout, fill=white, draw=black, callout absolute pointer={($(c1.center)+(1.0,2.6)$)},
+        font=\scriptsize\bfseries, align=center, rotate=3]
+        at ($(c1.center)+(2.3,3.95)$) {M[0,0] = true\\trust me bro};
+
+  % Kort 2: Thomas
+  \node[card, top color=rbBlue!40, bottom color=rbGreen!40, rotate=-2] (c2) at (0,0) {};
+  \pic[scale=1.15, rotate=-2] at ($(c2.center)+(0,1.75)$) {wolf};
+  \node[rotate=-2, align=center, text width=5.4cm] at ($(c2.center)+(0,-1.55)$)
+    {{\Large\bfseries Tidewolf}\\[-1pt]
+     {\small the Seeberg Wolf \texttwemoji{wolf}}\\[4pt]
+     {\bfseries Thomas Seeberg Hansen}\\
+     {\footnotesize\comicmono 202605116}\\[4pt]
+     {\footnotesize Superpower: Backtracking\\Howls: \emph{AWOO}$(n\cdot m)$}};
+  \node[ellipse callout, fill=white, draw=black, callout absolute pointer={($(c2.center)+(0.9,2.75)$)},
+        font=\scriptsize\bfseries, align=center, rotate=-2]
+        at ($(c2.center)+(1.85,4.05)$) {Backtrack\\to M[0,0]!};
+
+  % Kort 3: Frederik
+  \node[card, top color=rbViolet!35, bottom color=rbPink!40, rotate=2.5] (c3) at (6.6,0.2) {};
+  \pic[scale=1.15, rotate=2.5] at ($(c3.center)+(0,1.6)$) {raccoon};
+  \node[rotate=2.5, align=center, text width=5.4cm] at ($(c3.center)+(0,-1.55)$)
+    {{\Large\bfseries Freddy}\\[-1pt]
+     {\small the Trash Panda \texttwemoji{wastebasket}}\\[4pt]
+     {\bfseries Frederik Dommer\\Løvbjerg Plum}\\
+     {\footnotesize\comicmono 202606296}\\[3pt]
+     {\footnotesize Superpower: Pseudocode\\Eats: \texttt{null} pointers}};
+  \node[ellipse callout, fill=white, draw=black, callout absolute pointer={($(c3.center)+(-0.9,2.65)$)},
+        font=\scriptsize\bfseries, align=center, rotate=2.5]
+        at ($(c3.center)+(-1.95,4.0)$) {Doesn't compile?\\Ship it!};
+
+  % ------------------------------------------------------------ memes
+  % 67
+  \node[rotate=-8, fill=rbYellow, draw=black, line width=1.5pt, circle,
+        minimum size=3.3cm, drop shadow={opacity=0.4}] (sixseven) at (-7.5,-6.2) {};
+  \node[rotate=-8, font=\fontsize{46}{46}\selectfont\bfseries] at ($(sixseven)+(0,0.25)$)
+       {\textcolor{rbRed}{6}\textcolor{rbBlue}{7}};
+  \node[rotate=-8, font=\scriptsize\bfseries, align=center] at ($(sixseven)+(0,-0.95)$)
+       {M[6,7]? Out of\\bounds. Still 67.};
+  \node[rotate=-25] at ($(sixseven)+(-1.6,1.4)$) {\emo[0.9cm]{raising hands}};
+  \node[rotate=25]  at ($(sixseven)+(1.65,1.3)$) {\emo[0.9cm]{raising hands}};
+
+  % terminal
+  \node[fill=black!88, text=rbGreen, draw=rbGreen, line width=1.2pt, rounded corners=4pt,
+        align=left, font=\comicmono\small, rotate=3, drop shadow={opacity=0.4},
+        inner sep=7pt] at (-1.7,-6.0)
+       {\$ ./merge SHOE EARS SEAHORSE\\
+        > true \texttwemoji{party popper}\\
+        \$ ./merge SHOE EARS SEAHORSES\\
+        > Segmentation fault\\\phantom{>} (core dumped) \texttwemoji{skull}};
+
+  % "works on my machine"
+  \node[sticky, fill=rbPink!45, rotate=-6, text width=3.4cm] at (4.0,-5.3)
+       {\bfseries It works on\\my machine \texttwemoji{person shrugging}};
+
+  % O(nm) go brrr
+  \node[sticky, fill=rbGreen!45, rotate=7, text width=3.3cm] at (8.1,-6.5)
+       {\bfseries $O(nm)$\\go brrr \texttwemoji{fire}\texttwemoji{fire}};
+
+  % binær-joke
+  \node[sticky, fill=rbOrange!45, rotate=4, text width=4.6cm, font=\footnotesize]
+       at (4.4,-7.6)
+       {There are \textbf{10} kinds of people: those who understand binary and those
+        who don't. \texttwemoji{nerd face}};
+
+  % git merge
+  \node[sticky, fill=skyTop!60, rotate=-4, font=\comicmono\footnotesize, text width=4.1cm]
+       at (-2.1,-8.65)
+       {\$ git merge SHOE EARS\\0 merge conflicts \texttwemoji{exploding head}};
+
+  % ------------------------------------------------------------ forfattere + dato
+  \node[fill=white, draw=black, line width=1.5pt, rounded corners=8pt,
+        drop shadow={opacity=0.4}, align=center, inner sep=8pt, rotate=-1]
+       (auth) at (3.3,-9.75)
+       {\small\bfseries\rainbowtext{The team behind the masterpiece}\\[2pt]
+        \footnotesize\begin{tabular}{c}\@author\end{tabular}\\[4pt]
+        \texttwemoji{spiral calendar}\ \small\bfseries\@date};
+
+  % ------------------------------------------------------------ vej + dieselbiler
+  \fill[grass] (-10.6,-15) rectangle (10.6,-11.3);
+  \fill[road] (-10.6,-14.0) rectangle (10.6,-11.8);
+  \foreach \x in {-10,-8,...,10}
+    {\fill[rbYellow] (\x,-12.98) rectangle ++(1.1,0.16);}
+  % regnbue-spor bag den røde bil
+  \foreach \c [count=\k] in {rbRed,rbOrange,rbYellow,rbGreen,rbBlue,rbIndigo,rbViolet}
+    {\fill[\c] (-10.6,-11.75-0.11*\k) rectangle (-6.8,-11.86-0.11*\k);}
+  \pic[scale=1.15] at (-4.3,-12.15) {diesel=rbRed};
+  \pic[scale=1.0]  at (5.7,-13.55)  {diesel=rbBlue};
+  \node at (9.0,-11.0) {\emo[1.4cm]{fuel pump}};
+  \node[font=\scriptsize\bfseries, fill=white, draw=black, rounded corners=2pt, rotate=-5]
+       at (8.75,-10.1) {Diesel: 13.37 DKK/L};
+  \node at (-6.0,-14.55) {\emo[0.7cm]{t-rex}};
+  \node at (-4.8,-14.55) {\emo[0.7cm]{bug}};
+  \node at (-8.3,-14.5) {\emo[0.6cm]{hundred points}};
+  \node[font=\footnotesize\bfseries, text=white] at (2.8,-14.55)
+       {No diesel cars were harmed in the making of this hand-in \texttwemoji{red heart}};
+
+  % ekstra emojis til de tomme pletter
+  \node[rotate=12]  at (-9.8,-3.0) {\emo[0.8cm]{laptop}};
+  \node[rotate=-12] at (9.8,-3.3)  {\emo[0.8cm]{hot beverage}};
+  \node[rotate=8]   at (-9.4,-9.3) {\emo[0.8cm]{star-struck}};
+  \node[rotate=-10] at (-5.0,-9.6) {\emo[0.75cm]{clown face}};
+  \node at (-9.8,3.0) {\emo[0.7cm]{crown}};
+  \node at (9.8,3.2)  {\emo[0.7cm]{moai}};
+
+  \end{scope}
+\end{tikzpicture}
+\makeatother
+\null
+\end{document}
