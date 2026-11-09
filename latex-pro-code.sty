@@ -36,6 +36,10 @@
 %   \begin{pseudo} ... \end{pseudo}   pseudocode typed in the .tex file,
 %                                  same handling as \pseudo (also pseudo*,
 %                                  and the longer name pseudocode)
+%   \pseudo[from=java]{Merge.java}  Java printed as pseudocode: types and
+%                                  modifiers dropped, braces turned into
+%                                  then/do/end, Java operators written the
+%                                  pseudocode way (also \begin{pseudo}[from=java])
 %   \pseudoindentfalse             keep the file's own indentation
 %   Restyle with \lstdefinestyle{latexpro-python}{...} (or latexpro-pseudo).
 %
@@ -44,6 +48,12 @@
 
 \RequirePackage{listings}
 \RequirePackage{amstext}
+% A " in a code block (a string in Java, Python or pseudocode) reaches
+% LaTeX as \textquotedbl, which OT1 does not declare: without
+% \usepackage[T1]{fontenc} a listing with a string in it stops with
+% "Command \textquotedbl unavailable in encoding OT1". Slot 34 is the
+% straight " in the typewriter fonts a listing is set in, so declare it.
+\DeclareTextSymbol{\textquotedbl}{OT1}{34}
 % \latexprocodemath{length}: text in the code font inside maths, at the right
 % size for sub- and superscripts. Pseudocode subscripts (A_length) and
 % \variable{A_i} use it, so every variable has the same font.
@@ -407,6 +417,7 @@
 \tl_new:N \l__latexpro_code_span_tl
 \box_new:N \l__latexpro_code_box
 \bool_new:N \l__latexpro_code_filename_bool
+\tl_new:N \g__latexpro_code_from_tl
 \keys_define:nn { latexpro / code }
   {
     caption .tl_set:N = \l__latexpro_code_caption_tl ,
@@ -418,6 +429,12 @@
       { auto , true , false }
       { \tl_set_eq:NN \l__latexpro_code_span_tl \l_keys_choice_tl } ,
     span    .default:n  = true ,
+    % [from=java]: the block holds Java, printed as pseudocode. Only
+    % \pseudo and the pseudo environment read it; a Python block ignores it.
+    from    .choices:nn =
+      { pseudo , java }
+      { \tl_gset_eq:NN \g__latexpro_code_from_tl \l_keys_choice_tl } ,
+    from    .default:n  = java ,
     % [filename=false]: no file name on the right of the header bar
     filename .bool_set:N = \l__latexpro_code_filename_bool ,
     filename .default:n  = true ,
@@ -560,6 +577,7 @@
     \tl_clear:N \l__latexpro_code_caption_tl
     \tl_set:Nn \l__latexpro_code_span_tl { auto }
     \bool_set_true:N \l__latexpro_code_filename_bool
+    \tl_gset:Nn \g__latexpro_code_from_tl { pseudo }
     \tl_set:Nn \latexpro@wavefactor { 1 }
     \tl_set:Nn \latexpro@edgestyle { wave }
     % the defaults from \latexprocodesetup, then the block's own options
@@ -728,6 +746,7 @@
 \str_new:N  \l__latexpro_line_str
 \str_new:N  \l__latexpro_first_str
 \str_new:N  \l__latexpro_last_str
+\str_new:N  \l__latexpro_bare_str
 \seq_new:N  \l__latexpro_words_seq
 \bool_new:N \l__latexpro_open_bool
 
@@ -840,15 +859,168 @@
       { \__latexpro_pseudo_line_do:n {#1} }
   }
 \cs_generate_variant:Nn \msg_error:nnnn { nnVV }
+% --- from=java: Java source in a pseudo block, printed as pseudocode -------
+% A line-by-line rewrite, run before the indentation and the maths pass:
+% types and modifiers go, braces become then/do/end, Java operators become
+% their pseudocode spelling.  It is a filter, not a parser: one statement
+% per line is what it is good at.
+\str_new:N \l__latexpro_java_code_str
+\str_new:N \l__latexpro_java_comment_str
+\seq_new:N \l__latexpro_java_parts_seq
+\cs_new_protected:Npn \__latexpro_java_ops:N #1
+  {
+    % == != <= >= out of the way, so the single = below is an assignment
+    \regex_replace_all:nnN { == } { @@lpjeq@@ } #1
+    \regex_replace_all:nnN { != } { @@lpjne@@ } #1
+    \regex_replace_all:nnN { <= } { @@lpjle@@ } #1
+    \regex_replace_all:nnN { >= } { @@lpjge@@ } #1
+  }
+\cs_new_protected:Npn \__latexpro_java_unops:N #1
+  {
+    \regex_replace_all:nnN { @@lpjeq@@ } { = } #1
+    \regex_replace_all:nnN { @@lpjne@@ } { != } #1
+    \regex_replace_all:nnN { @@lpjle@@ } { <= } #1
+    \regex_replace_all:nnN { @@lpjge@@ } { >= } #1
+  }
+\cs_new_protected:Npn \__latexpro_java_line:N #1
+  {
+    \__latexpro_java_ops:N #1
+    % --- Java noise -------------------------------------------------------
+    % access modifiers and the trailing semicolon
+    \regex_replace_all:nnN
+      { \A (\s*) (?: (?: public | private | protected | static | final
+          | abstract | synchronized ) \s+ )+ } { \1 } #1
+    \regex_replace_once:nnN { ; \s* \Z } { } #1
+    % a declaration with no initialiser: "int n" -> "let n"
+    \regex_replace_once:nnN
+      { \A (\s*) (?: int | long | short | byte | char | boolean | float | double
+          | void | var | [A-Z] \w* )
+        (?: \s* \[ \s* \] )* (?: \s* < [^>]* > )? \s+ (\w+) \s* \Z }
+      { \1let\ \2 } #1
+    % "Type name" -> "name" (declarations and parameter lists); a trailing
+    % [] or <...> belongs to the type
+    \regex_replace_all:nnN
+      { \b (?: int | long | short | byte | char | boolean | float | double
+          | void | var | [A-Z] \w* )
+        (?: \s* \[ \s* \] )* (?: \s* < [^>]* > )? \s+ (\w+) \b } { \1 } #1
+    % --- control structures ------------------------------------------------
+    \regex_replace_once:nnN
+      { \A (\s*) (?: \} \s* )? else \s+ if \s* \( (.*) \) \s* \{ \s* \Z }
+      { \1else\ if\ \2\ then } #1
+    \regex_replace_once:nnN { \A (\s*) (?: \} \s* )? else \s* \{ \s* \Z } { \1else } #1
+    \regex_replace_once:nnN { \A (\s*) \} \s* while \s* \( (.*) \) \s* \Z }
+      { \1until\ not\ (\2) } #1
+    \regex_replace_once:nnN { \A (\s*) \} \s* \Z } { \1end } #1
+    \regex_replace_once:nnN { \A (\s*) do \s* \{ \s* \Z } { \1repeat } #1
+    % for (i = a; i < b; i++)  ->  for i = a to b - 1.  l3regex has no
+    % backreferences, so the condition and the step are not checked against
+    % the loop variable; the operator and ++/-- pick the direction.
+    \regex_replace_once:nnN
+      { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
+        \s* \w+ \s* < \s* ([^;]*?) \s* ; [^;)]* \+\+ [^;)]* \) \s* \{? \s* \Z }
+      { \1for\ \2\ @@lpjeq@@\ \3\ to\ \4\ -\ 1\ do } #1
+    \regex_replace_once:nnN
+      { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
+        \s* \w+ \s* @@lpjle@@ \s* ([^;]*?) \s* ; [^;)]* \+\+ [^;)]* \) \s* \{? \s* \Z }
+      { \1for\ \2\ @@lpjeq@@\ \3\ to\ \4\ do } #1
+    \regex_replace_once:nnN
+      { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
+        \s* \w+ \s* > \s* ([^;]*?) \s* ; [^;)]* -- [^;)]* \) \s* \{? \s* \Z }
+      { \1for\ \2\ @@lpjeq@@\ \3\ downto\ \4\ +\ 1\ do } #1
+    \regex_replace_once:nnN
+      { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
+        \s* \w+ \s* @@lpjge@@ \s* ([^;]*?) \s* ; [^;)]* -- [^;)]* \) \s* \{? \s* \Z }
+      { \1for\ \2\ @@lpjeq@@\ \3\ downto\ \4\ do } #1
+    % for (x : xs)  ->  for each x in xs
+    \regex_replace_once:nnN
+      { \A (\s*) for \s* \( \s* (\w+) \s* : \s* (.*?) \s* \) \s* \{? \s* \Z }
+      { \1for\ each\ \2\ in\ \3\ do } #1
+    \regex_replace_once:nnN
+      { \A (\s*) if \s* \( (.*) \) \s* \{ \s* \Z } { \1if\ \2\ then } #1
+    \regex_replace_once:nnN
+      { \A (\s*) if \s* \( (.*?) \) \s* (\S.*) \Z } { \1if\ \2\ then\ \3 } #1
+    \regex_replace_once:nnN
+      { \A (\s*) while \s* \( (.*) \) \s* \{ \s* \Z } { \1while\ \2\ do } #1
+    % the same without the brace: "if (x)" on a line of its own (Java that
+    % leaves the braces out).  Nothing closes such a block, so no end line
+    % can be worked out for it either.
+    \regex_replace_once:nnN
+      { \A (\s*) if \s* \( (.*) \) \s* \Z } { \1if\ \2\ then } #1
+    \regex_replace_once:nnN
+      { \A (\s*) while \s* \( (.*) \) \s* \Z } { \1while\ \2\ do } #1
+    \regex_replace_once:nnN
+      { \A (\s*) switch \s* \( (.*) \) \s* \{ \s* \Z } { \1switch\ \2 } #1
+    % --- a method header ----------------------------------------------------
+    \regex_replace_once:nnN
+      { \A (\s*) (\w[\w-]*) \s* \( (.*) \) \s* \{ \s* \Z }
+      { \1function\ \2(\3) } #1
+    % --- operators ----------------------------------------------------------
+    \regex_replace_all:nnN { (\w+) \s* \+\+ } { \1\ <-\ \1\ +\ 1 } #1
+    \regex_replace_all:nnN { \+\+ \s* (\w+) } { \1\ <-\ \1\ +\ 1 } #1
+    \regex_replace_all:nnN { (\w+) \s* -- } { \1\ <-\ \1\ -\ 1 } #1
+    \regex_replace_all:nnN { -- \s* (\w+) } { \1\ <-\ \1\ -\ 1 } #1
+    \regex_replace_all:nnN { (\w+) \s* \+= \s* (.*) } { \1\ <-\ \1\ +\ \2 } #1
+    \regex_replace_all:nnN { (\w+) \s* -= \s* (.*) } { \1\ <-\ \1\ -\ \2 } #1
+    \regex_replace_all:nnN { (\w+) \s* \*= \s* (.*) } { \1\ <-\ \1\ *\ \2 } #1
+    \regex_replace_all:nnN { && } { \ and\ } #1
+    \regex_replace_all:nnN { \|\| } { \ or\ } #1
+    \regex_replace_all:nnN { ! \s* (\w) } { not\ \1 } #1
+    \regex_replace_all:nnN { = } { <- } #1
+    % --- the standard library -----------------------------------------------
+    \regex_replace_all:nnN
+      { System \s* \. \s* out \s* \. \s* print (?: ln )? \s* \( (.*) \) }
+      { print\ \1 } #1
+    \regex_replace_all:nnN
+      { (\w+ (?: \[ [^\]]* \] )*) \s* \. \s* (?: length | size )
+        (?: \s* \( \s* \) )? }
+      { length(\1) } #1
+    \regex_replace_all:nnN
+      { (\w+ (?: \[ [^\]]* \] )*) \s* \. \s* charAt \s* \( ([^)]*) \) }
+      { \1[\2] } #1
+    \regex_replace_all:nnN { new \s+ \w+ \s* \[ ([^\]]*) \] } { new\ array[\1] } #1
+    \regex_replace_all:nnN { \b null \b } { nil } #1
+    \__latexpro_java_unops:N #1
+    % collapse the space runs the rewrites leave behind
+    \regex_replace_all:nnN { (\S) \ \ + } { \1\  } #1
+    \regex_replace_once:nnN { \s+ \Z } { } #1
+  }
+% split off a // comment, rewrite only the code in front of it
+\cs_new_protected:Npn \__latexpro_java_to_pseudo:N #1
+  {
+    \seq_set_split_keep_spaces:NnV \l__latexpro_java_parts_seq { // } #1
+    \seq_pop_left:NN \l__latexpro_java_parts_seq \l__latexpro_java_code_str
+    \seq_if_empty:NTF \l__latexpro_java_parts_seq
+      { \str_clear:N \l__latexpro_java_comment_str }
+      {
+        \str_set:Ne \l__latexpro_java_comment_str
+          { // \seq_use:Nn \l__latexpro_java_parts_seq { // } }
+      }
+    \__latexpro_java_line:N \l__latexpro_java_code_str
+    \str_set:Ne #1
+      {
+        \l__latexpro_java_code_str
+        \str_if_empty:NF \l__latexpro_java_comment_str
+          { \str_if_empty:NF \l__latexpro_java_code_str { \c_space_tl } }
+        \l__latexpro_java_comment_str
+      }
+  }
 \cs_new_protected:Npn \__latexpro_pseudo_line_do:n #1
   {
     \str_set:Nn \l__latexpro_line_str {#1}
+    \str_if_eq:VnT \g__latexpro_code_from_tl { java }
+      { \__latexpro_java_to_pseudo:N \l__latexpro_line_str }
     \ifpseudoindent
       \exp_args:NNV \str_replace_all:Nnn \l__latexpro_line_str
         \c__latexpro_tab_str { ~ }
       \str_set:Ne \l__latexpro_line_str
         { \tl_trim_spaces:V \l__latexpro_line_str }
-      \seq_set_split:NnV \l__latexpro_words_seq { ~ } \l__latexpro_line_str
+      % The block structure is read from the code alone: a comment at the
+      % end of a line ("for i = 1 to n do // bottom up") must not hide the
+      % do that opens the block.
+      \str_set_eq:NN \l__latexpro_bare_str \l__latexpro_line_str
+      \regex_replace_once:nnN { \s* (?: // | /\* ) .* \Z } { }
+        \l__latexpro_bare_str
+      \seq_set_split:NnV \l__latexpro_words_seq { ~ } \l__latexpro_bare_str
       \seq_remove_all:Nn \l__latexpro_words_seq { }
       \str_set:Ne \l__latexpro_first_str
         { \str_foldcase:e { \seq_item:Nn \l__latexpro_words_seq { 1 } } }
@@ -943,6 +1115,16 @@
 % #1 star bool, #2 options, #3 file, #4 header text when there is no caption
 \cs_new_protected:Npn \__latexpro_pseudo_input:Nnnn #1#2#3#4
   {
+    % from= is needed now, the other options only when the box is drawn
+    % below: take it from the defaults and the block's own options here. The
+    % key sets it globally, so it survives the group that throws away
+    % everything else these options do (it is all set again down there).
+    \group_begin:
+      \tl_gset:Nn \g__latexpro_code_from_tl { pseudo }
+      \keys_set_known:neN { latexpro / code }
+        { \exp_not:V \l__latexpro_code_defaults_clist , \exp_not:n {#2} }
+        \l_tmpa_clist
+    \group_end:
     \__latexpro_pseudo_prepare:n {#3}
     \__latexpro_code_box:nNnnnn { Pseudocode } #1 {#2} {#4} { latexpro-pseudo }
       { \c__latexpro_pseudo_file_str }

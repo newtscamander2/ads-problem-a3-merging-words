@@ -65,7 +65,7 @@
 
 \section*{a)}
 We let M[i,j] denote the boolean value that is true if and only if $z_1 z_2 ... z_{i+j}$ is a merge of $x_1 x_2 ... x_{i}$ and $y_1 y_2 ... y_{j}$. We can use the recurrence
-
+test
 \begin{equation}
 	M[i,j] = \begin{cases}
 		true                                                              & \text{if } i=0 \land j=0   \\
@@ -76,7 +76,7 @@ We let M[i,j] denote the boolean value that is true if and only if $z_1 z_2 ... 
 	\label{piecewise}
 \end{equation}
 
-\begin{pseudo}[span]
+\begin{pseudo}[span, from=java]
 	String x = ' SHOE';
 	String y = ' EARS';
 	String z = ' SEAHORSE';
@@ -98,8 +98,6 @@ We let M[i,j] denote the boolean value that is true if and only if $z_1 z_2 ... 
 	if(i > 0 && j > 0)
 	M[i][j] = (z.charAt(i + j) == y.charAt(j) && M[i][j - 1]) ||
 	(z.charAt(i+j) == x.charAt(i) && M[i-1][j]);
-
-
 
 \end{pseudo}
 
@@ -131,7 +129,7 @@ To dynamically find out if the word \variable{z} is the merge of two words \vari
 
 The different if-statements are made from the piecewise-function given in \bookeq{\ref{piecewise}}.
 
-\begin{pseudo}[span]
+\begin{pseudo}[span, from=java]
 	function Is-Merge(M, x, y, z, i, j)
 	if i == 0 and j == 0 then
 	M[i,j] = true

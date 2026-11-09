@@ -1,0 +1,31 @@
+function isMerge(M, x, y, i, j)
+    n $\gets$ length(x)
+    let seen
+    a $\gets$ "SHOE"
+    if i = 0 and j = 0 then
+        M[i][j] $\gets$ true
+        return true
+    end
+    for b = 0 to n - 1 do // bottom up
+        for c = 0 to j do
+            isMerge(M, x, y, b, c)
+        end
+    end
+    for d = n - 1 downto 0 do
+        count $\gets$ count + 2
+    end
+    for each w in words do
+        print w
+    end
+    while k $\neq$ 0 do
+        k $\gets$ k - 1
+    end
+    if i = 0 and j $>$ 0 then
+        M[i][j] $\gets$ x[j] = y[j]
+    else if i $>$ 0 and j = 0 then
+        M[i][j] $\gets$ not seen[i]
+    else
+        M[i][j] $\gets$ nil
+    end
+    return M[i][j]
+end

@@ -32,6 +32,7 @@ end function
 | `\pseudo[opts]{file.txt}` | a plain-text pseudocode file, highlighted and indented |
 | `\pseudo*{file.txt}` | the same without line numbers |
 | `\begin{pseudo} ... \end{pseudo}` | pseudocode typed straight into the `.tex` file, handled exactly like `\pseudo` (`pseudo*` drops the line numbers; `pseudocode` is the same environment) |
+| `\pseudo[from=java]{Merge.java}` | Java, printed as pseudocode (see *Java as pseudocode* below); works for `\begin{pseudo}[from=java]` too |
 | `\pseudoindentfalse` | from here on, keep the file's own indentation (`\pseudoindenttrue` turns it back on) |
 
 `opts` is `span` / `span=false` (see *Long code* below) or any `listings` option
@@ -39,6 +40,81 @@ end function
 without it the header shows the file name. `filename=false` hides the file
 name (works for `\python` and `\pseudo`): `\pseudo[filename=false]{algo.txt}`.
 `\begin{pythoncode}` and `\begin{pseudo}` have no file, so they only show a caption.
+
+### Java as pseudocode
+
+`from=java` tells a pseudocode block that what it holds is Java, and to print
+it as pseudocode. It is one block's setting, not a mode: the next block is
+pseudocode again.
+
+```latex
+\begin{pseudo}[from=java, caption={Is-Merge}]
+public static boolean isMerge(boolean[][] M, String x, String y, int i, int j) {
+    if (i == 0 && j == 0) {
+        M[i][j] = true;
+        return true;
+    }
+    for (int b = 0; b < x.length(); b++) {   // bottom up
+        isMerge(M, x, y, b, j);
+    }
+    return M[i][j];
+}
+\end{pseudo}
+```
+
+comes out as
+
+```
+function isMerge(M, x, y, i, j)
+    if i = 0 and j = 0 then
+        M[i][j] ← true
+        return true
+    end
+    for b = 0 to length(x) - 1 do // bottom up
+        isMerge(M, x, y, b, j)
+    end
+    return M[i][j]
+end
+```
+
+What it does, line by line:
+
+| Java | pseudocode |
+| --- | --- |
+| `public static`, `final`, … and the trailing `;` | dropped |
+| `String x = "SHOE";` | `x ← "SHOE"` (the type goes, `=` becomes `←`) |
+| `int n;` | `let n` |
+| `if (a == b) {` … `}` | `if a = b then` … `end` |
+| `} else if (a > b) {`, `} else {` | `else if a > b then`, `else` |
+| `for (int i = 0; i < n; i++) {` | `for i = 0 to n - 1 do` |
+| `for (int i = n - 1; i >= 0; i--) {` | `for i = n - 1 downto 0 do` |
+| `for (String w : words) {` | `for each w in words do` |
+| `while (k != 0) {`, `do {` … `} while (c)` | `while k ≠ 0 do`, `repeat` … `until not (c)` |
+| `boolean f(int a, int b) {` | `function f(a, b)` |
+| `&&`, `\|\|`, `!x`, `==`, `!=` | `and`, `or`, `not x`, `=`, `≠` |
+| `i++`, `i--`, `i += 2` | `i ← i + 1`, `i ← i - 1`, `i ← i + 2` |
+| `x.length()`, `x.size()` | `length(x)` |
+| `x.charAt(i)` | `x[i]` |
+| `System.out.println(x);` | `print x` |
+| `new int[n]` | `new array[n]` |
+| `null` | `nil` |
+
+A `//` comment is kept as it is, and the block is indented by the keywords
+the rewrite produces, as any pseudocode block is.
+
+**It is a filter, not a parser.** It reads one line at a time and rewrites
+what it recognises, which is idiomatic Java with one statement per line. It
+does not understand:
+
+* generics — the `<` and `>` of `Map<String, Integer>` are read as operators;
+* an expression spread over several lines;
+* a string holding something that looks like code (`"a == b"` is rewritten
+  inside the quotes);
+* lambdas, `try`/`catch`, anonymous classes.
+
+So read what comes out. If a line is beyond it, write that one line as
+pseudocode yourself — the rewrite leaves anything it does not recognise
+alone.
 
 ### Look
 

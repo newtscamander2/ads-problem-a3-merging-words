@@ -1,0 +1,5 @@
+function Foo(n)
+    for i = 1 to n do // bottom up
+        x = x + 1
+    end
+end

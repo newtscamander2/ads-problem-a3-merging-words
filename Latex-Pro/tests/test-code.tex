@@ -138,6 +138,31 @@ Text with \method{merge} in it.
 \lpcomments{latexpro-python}{s = 1}
 \lptrue{operators in Python code are coloured}{\ifnum\lpsawkw=1 }
 
+% A comment at the end of a line must not hide the then/do that opens the
+% block.  Regression: the block structure was read from the whole line, so
+% "for i = 1 to n do // bottom up" ended in "up" and indented nothing.
+\pseudo{code/comment-indent.txt}
+\lpsamefile{a comment at the end of a line keeps the indentation}{\pseudotmp}{code/comment-indent-expected.txt}
+
+% [from=java]: Java in a pseudocode block, printed as pseudocode
+\pseudo[from=java]{code/java.java}
+\lpsamefile{from=java prints Java as pseudocode}{\pseudotmp}{code/java-expected.txt}
+% from= is per block: the next one is pseudocode again
+\pseudo{code/indent.txt}
+\lpsamefile{from=java does not stay set for the next block}{\pseudotmp}{code/indent-expected.txt}
+% The body is verbatim, so a % line in here would be code: the note goes
+% above.  Without braces the if still becomes "if ... then"; an index
+% belongs to the name (M[k].length), and the space after .length is not
+% swallowed by length(...).
+\begin{pseudo}[from=java]
+if (a == b) {
+    return x.length();
+}
+if (a == b)
+for (int i = 0; i < M[k].length; i++)
+\end{pseudo}
+\lpsamefile{from=java works in the pseudo environment}{\pseudotmp}{code/java-env-expected.txt}
+
 % names with hyphens. Regression: in ADD-building-to-SKYLINE the "-" were
 % operators, so only ADD and SKYLINE were function names (small caps) and
 % the "-" were red. A "-" between two letters now joins one name; n-1 and

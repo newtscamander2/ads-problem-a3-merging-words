@@ -1,0 +1,5 @@
+if a = b then
+    return length(x)
+end
+if a = b then
+    for i = 0 to length(M[k]) - 1 do
