@@ -1,0 +1,107 @@
+% latex-pro-links.sty -- QR codes for links
+% (part of latex-pro)
+%
+% Usage:  \usepackage{latex-pro}  or  \usepackage{latex-pro-links}
+%
+% Commands
+%   \qr{https://...}               QR code of the link, 2cm high, clickable
+%   \qr[3cm]{https://...}          the same, 3cm high
+%   \qr*{https://...}              QR code with the link printed beneath
+%   \qrsetsize{2.5cm}              change the default size
+%
+% Paste the link as it is: % # _ & ~ $ ^ need no escaping. Inside the
+% argument of another command (\fbox, \footnote, a table cell is fine) TeX
+% has already read the text, so write \% and \# there; \_ \& \~ also work.
+%
+% Uses the qrcode package (pure LaTeX, works with pdflatex, no shell-escape).
+% Load hyperref yourself to make the codes and printed links clickable.
+%
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{latex-pro-links}[2026/11/03 v0.2 latex-pro: links]
+
+\RequirePackage{qrcode}
+\RequirePackage{url}
+
+\ExplSyntaxOn
+\dim_new:N \l__lp_qr_size_dim
+\dim_set:Nn \l__lp_qr_size_dim { 2cm }
+\str_new:N \l__lp_qr_url_str
+\str_new:N \g__lp_qr_last_str  % the last link \qr encoded (for the tests)
+\bool_new:N \l__lp_qr_print_bool
+\tl_new:N \l__lp_qr_size_tl
+\cs_generate_variant:Nn \tl_if_blank:nF { V }
+
+\NewDocumentCommand \qrsetsize { m } { \dim_set:Nn \l__lp_qr_size_dim {#1} }
+
+% \qr reads the link with the special characters made harmless, the way
+% \url does, so a pasted link survives. The size is read first.
+\NewDocumentCommand \qr { s O{} }
+  {
+    \group_begin:
+    \bool_set:Nn \l__lp_qr_print_bool {#1}
+    \tl_set:Nn \l__lp_qr_size_tl {#2}
+    \char_set_catcode_other:N \%
+    \char_set_catcode_other:N \#
+    \char_set_catcode_other:N \_
+    \char_set_catcode_other:N \&
+    \char_set_catcode_other:N \~
+    \char_set_catcode_other:N \$
+    \char_set_catcode_other:N \^
+    \__lp_qr_read:n
+  }
+
+\cs_new_protected:Npn \__lp_qr_read:n #1
+  {
+    \str_set:Nn \l__lp_qr_url_str {#1}
+    % Already-read text (inside another command) may carry \% \# \_ etc.:
+    % turn those back into the plain characters. Spaces are dropped too,
+    % since a link never has one (a line break in the source adds one).
+    \regex_replace_all:nnN { \\ ([\%\#\_\&\~\$\^\{\}]) } { \1 } \l__lp_qr_url_str
+    \regex_replace_all:nnN { \s } { } \l__lp_qr_url_str
+    \tl_if_blank:VF \l__lp_qr_size_tl
+      { \dim_set:Nn \l__lp_qr_size_dim { \l__lp_qr_size_tl } }
+    \str_gset_eq:NN \g__lp_qr_last_str \l__lp_qr_url_str
+    \__lp_qr_typeset:
+    \group_end:
+  }
+
+\cs_new_protected:Npn \__lp_qr_typeset:
+  {
+    \bool_if:NTF \l__lp_qr_print_bool
+      {
+        \begin{tabular}[b]{@{}c@{}}
+          \__lp_qr_code: \\
+          \__lp_qr_text:
+        \end{tabular}
+      }
+      { \__lp_qr_code: }
+  }
+
+% The link is handed over as a string, so qrcode encodes it exactly as
+% typed. qrcode's own `link` option (on when hyperref is loaded) makes
+% the code clickable; nolink keeps it plain without hyperref.
+\cs_new_protected:Npn \__lp_qr_code:
+  {
+    \use:e
+      {
+        \exp_not:N \qrcode
+          [ height = \dim_use:N \l__lp_qr_size_dim ,
+            \cs_if_exist:NTF \href { link } { nolink } ]
+          { \exp_not:V \l__lp_qr_url_str }
+      }
+  }
+
+\cs_new_protected:Npn \__lp_qr_text:
+  {
+    \parbox[t]{ \dim_max:nn { \l__lp_qr_size_dim } { 4cm } }
+      {
+        \centering \footnotesize
+        \cs_if_exist:NTF \href
+          { \exp_args:NV \__lp_qr_href:n \l__lp_qr_url_str }
+          { \exp_args:NV \url \l__lp_qr_url_str }
+      }
+  }
+\cs_new_protected:Npn \__lp_qr_href:n #1 { \href {#1} { \nolinkurl {#1} } }
+\ExplSyntaxOff
+
+\endinput

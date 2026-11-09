@@ -1,0 +1,25 @@
+% Tests for the book references in latex-pro-theorems.sty.
+\documentclass{article}
+\usepackage{latex-pro-theorems}
+\usepackage{lptest}
+\newcommand\want[2]{\textnormal{\textsc{#1}}~\textnormal{\textbf{#2}}}
+\begin{document}
+\section{Intro}\label{sec:intro}
+\begin{equation}\label{eq:one} x = 1 \end{equation}
+
+\lpsametext{section from typed number}{\booksection{2.3}}{\want{Section}{2.3}}
+\lpsametext{chapter from typed number}{\bookchapter{4}}{\want{Chapter}{4}}
+\lpsametext{equation in parentheses}{\bookeq{3.12}}{\want{Equation}{(3.12)}}
+\lpsametext{equation typed with parentheses}{\bookeq{(3.12)}}{\want{Equation}{(3.12)}}
+\lpsametext{equation with spaces}{\bookeq{ 3.12 }}{\want{Equation}{(3.12)}}
+\lpsametext{appendix section}{\booksection{A.2}}{\want{Section}{A.2}}
+\lpsametext{sub-equation}{\bookeq{3.1a}}{\want{Equation}{(3.1a)}}
+\lpsametext{three-level section}{\booksection{2.3.1}}{\want{Section}{2.3.1}}
+% the argument is always text, never looked up as a label
+\lpsametext{label name is just text}{\booksection{sec:intro}}{\want{Section}{sec:intro}}
+\lpsametext{label via ref}{\bookeq{\ref{eq:one}}}{\want{Equation}{(1)}}
+\lpsametext{renamed}{\renewcommand\bookeqname{Ligning}\bookeq{2}}{\want{Ligning}{(2)}}
+% regression: theorem references are unchanged by the new number forms
+\lpsametext{theorem reference unchanged}{\theorem{4.2}}{\want{Theorem}{4.2}}
+\lpsametext{letter-number theorem}{\theorem{A.1}}{\want{Theorem}{A.1}}
+\end{document}

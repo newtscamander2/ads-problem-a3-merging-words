@@ -1,0 +1,9 @@
+function f(x)
+    return x
+end
+
+function $\mbox{\latexprohyphenname{add-building-to-skyline}}$(A, building)
+    ArrayList$<$Integer$>$ skylineWithOneBuilding = {building.left, building.height, building.right};
+
+    return Merge(A, skylineWithOneBuilding);
+end

@@ -1,0 +1,16 @@
+% Tests for latex-pro-sets.sty, loaded on its own.
+\documentclass{article}
+\usepackage{latex-pro-sets}
+\usepackage{lptest}
+\begin{document}
+\lpsame{number sets}{\N\Z\Q\R}{\mathbb{N}\mathbb{Z}\mathbb{Q}\mathbb{R}}
+\lpsame{set}{\set{1,2,3}}{\{1,2,3\}}
+\lpsame{set starred grows}{\set*{\frac12}}{\left\{\frac12\right\}}
+\lpsame{setof}{\setof{x \in S}{p(x)}}{\{x \in S \;\vert\; p(x)\}}
+\lpsame{ball}{\ball{v}{\epsilon}}{B(v, \epsilon)}
+\lpsame{dist}{\dist{u}{v}}{d(u, v)}
+\lpsame{interior}{\interior{S}}{{S}^{\circ}}
+\lpsame{boundary}{\bd{S}}{\partial S}
+\lpsame{polynomials default}{\Rx}{\mathbb{R}[x]}
+\lpsame{polynomials other variable}{\Rx[t]}{\mathbb{R}[t]}
+\end{document}

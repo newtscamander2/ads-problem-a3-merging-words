@@ -1,0 +1,17 @@
+% Tests for latex-pro-notation.sty, loaded on its own.
+\documentclass{article}
+\usepackage{latex-pro-notation}
+\usepackage{lptest}
+\begin{document}
+\lpsame{norm}{\norm{x}}{\lVert x\rVert}
+\lpsame{norm starred grows}{\norm*{\frac{u}{2}}}{\left\lVert\frac{u}{2}\right\rVert}
+\lpsame{abs}{\abs{x-y}}{\lvert x-y\rvert}
+\lpsame{inner}{\inner{u}{v}}{\langle u, v\rangle}
+\lpsame{transpose}{A\tp}{A^{T}}
+\lpsame{map}{\map{f}{A}{B}}{f\colon A\to B}
+\lpsame{defeq}{x \defeq y}{x \coloneqq y}
+\lpsame{argmin limits underneath}{\argmin_{x \in C} f(x)}{\operatorname*{arg\,min}_{x \in C} f(x)}
+\lpsame{minimize stacks constraints}{\minimize{f(x)}{x \in C \\ x \ge 0}}
+  {\min_{\substack{x \in C \\ x \ge 0}}\; f(x)}
+\lpsame{maximize}{\maximize{f(x)}{x \ge 0}}{\max_{\substack{x \ge 0}}\; f(x)}
+\end{document}

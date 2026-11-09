@@ -1,0 +1,1016 @@
+% latex-pro-code.sty -- Python and pseudocode listings (part of latex-pro)
+%
+% Usage:  \usepackage{latex-pro}  or  \usepackage{latex-pro-code}
+%
+% Commands
+%   \python{code/solve.py}         include a .py file as highlighted Python in
+%                                  an IDE-style box (listings + tcolorbox,
+%                                  works with plain pdflatex)
+%   \python[caption=Solver]{f.py}  caption/title go in the header bar, any
+%                                  other listings option, e.g. firstline=5
+%   \python*{f.py}                 same, without line numbers
+%   (long boxes)                   a box taller than a page breaks across
+%                                  pages by itself; a shorter one is kept in
+%                                  one piece (moved to the next page)
+%   \python[span]{f.py}            may always break; span=false: never
+%   \python[edge=zigzag]{f.py}     the look of the edges where a page break
+%                                  splits the box: wave (default), zigzag,
+%                                  scallop, torn, fade, dashed, scissors,
+%                                  continued, straight
+%   \latexprocodesetup{edge=torn}  default options of every later block;
+%                                  also \usepackage[edge=torn]{latex-pro}
+%   \begin{pythoncode} ... \end{pythoncode}   Python typed in the .tex file
+%                                  (pythoncode* without line numbers)
+%   \py{x = 1}                     short inline Python inside a sentence
+%   \method{merge}                 a function name in the text, styled like
+%                                  function names in the code blocks
+%   \variable{lo}  \variable{A_i}  a variable in the text, written as in a
+%                                  pseudocode block
+%   \pseudo{algo.txt}              include a pseudocode .txt file: keywords
+%                                  (if/then/else/for/while/repeat/return/end
+%                                  ...) highlighted, \geq \leq \gets <= != ... as
+%                                  maths, and indented automatically
+%   \pseudo[caption=..]{f.txt}  \pseudo*{f.txt}   same options as \python
+%   \python[filename=false]{f.py}  no file name on the right of the header
+%                                  (also \pseudo; caption=.. replaces it)
+%   \begin{pseudo} ... \end{pseudo}   pseudocode typed in the .tex file,
+%                                  same handling as \pseudo (also pseudo*,
+%                                  and the longer name pseudocode)
+%   \pseudoindentfalse             keep the file's own indentation
+%   Restyle with \lstdefinestyle{latexpro-python}{...} (or latexpro-pseudo).
+%
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{latex-pro-code}[2026/11/05 v0.7 latex-pro: code listings]
+
+\RequirePackage{listings}
+\RequirePackage{amstext}
+% \latexprocodemath{length}: text in the code font inside maths, at the right
+% size for sub- and superscripts. Pseudocode subscripts (A_length) and
+% \variable{A_i} use it, so every variable has the same font.
+\newcommand\latexprocodemath[1]{\text{\latexprocodefont #1}}
+
+% ---------------------------------------------------------------------------
+% Look: IDE-style boxes (light mode)
+% ---------------------------------------------------------------------------
+% Every block is a rounded box with a header bar naming the language (and the
+% caption or file name on the right), a rule under it, a monospace font and
+% GitHub-light colours. Function names are in small caps. Change a colour with \definecolor after loading,
+% e.g. \definecolor{latexpro@keyword}{HTML}{D73A49}, the font with
+% \renewcommand\latexprocodefont{\ttfamily}, the box with
+% \tcbset{latexpro-code/.append style={...}}.
+\newcommand\latexprocodefont{\ttfamily}
+% JetBrains Mono: with XeLaTeX or LuaLaTeX the code font is JetBrains Mono
+% when it can be found, either installed on the computer or as the files
+% JetBrainsMono-Regular.ttf (-Bold, -Italic, -BoldItalic) next to the .tex
+% file (on Overleaf: upload them and pick XeLaTeX or LuaLaTeX). pdflatex
+% cannot use it and keeps \ttfamily. A \renewcommand\latexprocodefont of your
+% own is always kept. JetBrains Mono has no small caps, so function names use
+% Latin Modern Mono Caps for those.
+\let\latexpro@defaultcodefont\latexprocodefont
+\ExplSyntaxOn
+\tl_new:N \l__latexpro_code_sc_tl
+\cs_new_protected:Npn \__latexpro_code_jetbrains:
+  {
+    \cs_if_eq:NNT \latexprocodefont \latexpro@defaultcodefont
+      {
+        \bool_lazy_or:nnTF { \sys_if_engine_xetex_p: } { \sys_if_engine_luatex_p: }
+          {
+            \@ifpackageloaded { fontspec } { } { \RequirePackage { fontspec } }
+            % small caps for function names, from Latin Modern Mono Caps
+            \tl_clear:N \l__latexpro_code_sc_tl
+            \fontspec_font_if_exist:nTF { Latin~Modern~Mono~Caps }
+              {
+                \tl_set:Nn \l__latexpro_code_sc_tl
+                  {
+                    SmallCapsFont = { Latin~Modern~Mono~Caps } ,
+                    SmallCapsFeatures = { Extension = { } , Scale = MatchLowercase } ,
+                  }
+              }
+              {
+                \fontspec_font_if_exist:nT { lmmonocaps10-regular.otf }
+                  {
+                    \tl_set:Nn \l__latexpro_code_sc_tl
+                      {
+                        SmallCapsFont = { lmmonocaps10-regular.otf } ,
+                        SmallCapsFeatures = { Extension = { } , Scale = MatchLowercase } ,
+                      }
+                  }
+              }
+            \fontspec_font_if_exist:nTF { JetBrains~Mono }
+              {
+                \use:e
+                  {
+                    \exp_not:N \newfontfamily \exp_not:N \latexpro@jetbrains
+                      { JetBrains~Mono }
+                      [ Scale = MatchLowercase , \exp_not:V \l__latexpro_code_sc_tl ]
+                  }
+              }
+              {
+                \fontspec_font_if_exist:nTF { JetBrainsMono-Regular.ttf }
+                  {
+                    \use:e
+                      {
+                        \exp_not:N \newfontfamily \exp_not:N \latexpro@jetbrains
+                          { JetBrainsMono }
+                          [ Extension = .ttf ,
+                            UprightFont = *-Regular , BoldFont = *-Bold ,
+                            ItalicFont = *-Italic , BoldItalicFont = *-BoldItalic ,
+                            Scale = MatchLowercase ,
+                            \exp_not:V \l__latexpro_code_sc_tl ]
+                      }
+                  }
+                  {
+                    \PackageInfo { latex-pro-code }
+                      { JetBrains~Mono~not~found:~code~uses~\string\ttfamily }
+                  }
+              }
+            \cs_if_exist:NT \latexpro@jetbrains
+              { \cs_set_eq:NN \latexprocodefont \latexpro@jetbrains }
+          }
+          {
+            \PackageInfo { latex-pro-code }
+              { JetBrains~Mono~needs~XeLaTeX~or~LuaLaTeX:~code~uses~\string\ttfamily }
+          }
+      }
+  }
+\ExplSyntaxOff
+\AddToHook{begindocument/before}[latexpro/jetbrains]{\csname __latexpro_code_jetbrains:\endcsname}
+% function / method names (merge in "function merge(A, B)", newton in
+% "def newton(x)" and wherever they are called) are set in small caps, like
+% \textsc{merge}; \renewcommand\latexprofunctionfont{} turns that off.
+\newcommand\latexprofunctionfont{\scshape}
+% the whole look of a function name, shared by listings and \method
+\newcommand\latexpro@functionstyle{\color{latexpro@function}\latexprofunctionfont}
+% \method{merge}: a function / method name in running text, in the same
+% font, colour and small caps as in the code blocks
+\NewDocumentCommand\method{m}{{\latexprocodefont\latexpro@functionstyle #1}}
+\newif\iflatexpro@fn
+\newcommand\latexpro@fnnext{\global\latexpro@fntrue}
+% identifiers: the name right after def / class / function is a function name
+\newcommand\latexpro@ident{%
+  \iflatexpro@fn\global\latexpro@fnfalse\latexpro@functionstyle\fi}
+% xcolor and tcolorbox are loaded at \begin{document} if the document has not
+% loaded them, so \usepackage[...]{xcolor} anywhere in the preamble never gives
+% an option clash.
+\AddToHook{begindocument/before}{%
+  \@ifpackageloaded{xcolor}{}{\RequirePackage{xcolor}}%
+  \@ifpackageloaded{tcolorbox}{}{\RequirePackage{tcolorbox}}%
+  \tcbuselibrary{breakable,skins}%
+  \providecolor{latexpro@codebg}{HTML}{F6F8FA}%
+  \providecolor{latexpro@codeframe}{HTML}{D0D7DE}%
+  \providecolor{latexpro@header}{HTML}{24292F}%
+  \providecolor{latexpro@headerinfo}{HTML}{57606A}%
+  \providecolor{latexpro@text}{HTML}{24292F}%
+  \providecolor{latexpro@keyword}{HTML}{CF222E}%
+  \providecolor{latexpro@function}{HTML}{8250DF}%
+  \providecolor{latexpro@builtin}{HTML}{8250DF}%
+  \providecolor{latexpro@constant}{HTML}{0550AE}%
+  \providecolor{latexpro@string}{HTML}{0A3069}%
+  \providecolor{latexpro@comment}{HTML}{6E7781}%
+  \providecolor{latexpro@number}{HTML}{8C959F}%
+  \tcbset{latexpro-code/.style={
+    colback=latexpro@codebg, colframe=latexpro@codeframe,
+    colbacktitle=latexpro@codebg, coltitle=latexpro@header,
+    fonttitle=\sffamily\small,
+    boxrule=0.6pt, titlerule=0.6pt, arc=6pt,
+    left=10pt, right=10pt, top=4pt, bottom=6pt,
+    lefttitle=10pt, righttitle=10pt, toptitle=3pt, bottomtitle=3pt,
+    before skip=\medskipamount, after skip=\medskipamount,
+    % a box split over pages: the split edges are square and have no border
+    % (the jigsaw skin draws only the outer edges); \latexpro@edge then
+    % draws them in the box's edge style (wave by default, see below)
+    enhanced jigsaw,
+    latexpro-code-edge,
+    extras first={sharp corners=south, overlay={\latexpro@edge{south}{1}}},
+    extras middle={sharp corners,
+      overlay={\latexpro@edge{south}{1}\latexpro@edge{north}{-1}}},
+    extras last={sharp corners=north, overlay={\latexpro@edge{north}{-1}}}}}%
+  % extra room between the code and a split edge, for the styles that draw
+  % over it (fade, continued)
+  \tcbset{latexpro-code-edge/.code={%
+    \edef\latexpro@tmp{\csname latexpro@edgesep@\latexpro@edgestyle\endcsname}%
+    \pgfkeysalso{topsep at break=\latexpro@tmp, bottomsep at break=\latexpro@tmp}}}%
+  \providecolor{latexpro@pagebg}{named}{white}%
+  \usetikzlibrary{fadings}%
+  \@ifpackageloaded{pifont}{}{\IfFileExists{pifont.sty}{\RequirePackage{pifont}}{}}%
+}
+% ---------------------------------------------------------------------------
+% Split edges: how a code box looks where a page break cuts it
+% ---------------------------------------------------------------------------
+% \latexpro@edge{south}{1} draws the bottom edge of a box part above a page
+% break, \latexpro@edge{north}{-1} the top edge of the part below it, in the
+% style \latexpro@edgestyle (the box option edge=..., or the document
+% default from \latexprocodesetup{edge=...} / \usepackage[edge=...]{...}):
+%
+%   wave       a smooth sine wave (default)
+%   zigzag     sharp teeth, like pinking shears
+%   scallop    round lobes, like a cloud or a stamp edge
+%   torn       an irregular jagged edge, like torn paper
+%   fade       the box fades into the page
+%   dashed     a dashed line, like a perforation
+%   scissors   a dashed line with scissors on it (cut here)
+%   continued  a straight open edge with "continued on next page" /
+%              "continued from previous page"
+%   straight   a straight open edge, nothing drawn
+%
+% The cut styles (wave, zigzag, scallop, torn) cut the edge by covering
+% everything beyond the cut line (border included, so the side borders stop
+% where the cut meets them) in the page colour (latexpro@pagebg).
+% \latexprowaveheight is the height of the cut, \latexprowavelength one
+% period of it at length=1; the box option length=x makes the period x
+% times as long.
+%
+% The two edges of a page break fit together like puzzle pieces: each cut
+% style has a profile p(t) between -1 and 1, t pt from the west side, and
+% the cut lies 2h + s*h*p(t) in from the edge, for s = 1 (south) or -1
+% (north). Where the bottom edge of one part bulges down, the top edge of
+% the next part dips down, and the depth of the south edge plus that of
+% the north edge is always 4h.
+\newcommand\latexprowaveheight{1.8pt}
+\newcommand\latexprowavelength{14pt}
+% the fade style: how tall the fade is
+\newcommand\latexprofadeheight{14pt}
+% the continued style: the labels at the two edges of a page break
+\newcommand\latexprocontinuedtext{continued on next page}
+\newcommand\latexprocontinuedfromtext{continued from previous page}
+\newcommand\latexpro@wavefactor{1}
+\newcommand\latexpro@edgestyle{wave}
+% extra space between the code and a split edge, per style
+\def\latexpro@edgesep@wave{0pt}
+\def\latexpro@edgesep@zigzag{0pt}
+\def\latexpro@edgesep@scallop{0pt}
+\def\latexpro@edgesep@torn{0pt}
+\def\latexpro@edgesep@fade{6pt}
+\def\latexpro@edgesep@dashed{0pt}
+\def\latexpro@edgesep@scissors{0pt}
+\def\latexpro@edgesep@continued{6pt}
+\def\latexpro@edgesep@straight{0pt}
+% profiles of the cut styles (t in pt, period \latexpro@wavel), and the
+% distance between the points the cut line is drawn through, as a fraction
+% of the period (zigzag and torn need their corners exactly)
+\newcommand\latexpro@profile@wave[1]{sin((#1)/\latexpro@wavel*360)}
+\def\latexpro@step@wave{0.125}
+% zigzag: a triangle wave in step with the sine (0 at t=0, 1 at a quarter)
+\newcommand\latexpro@profile@zigzag[1]{%
+  (1-4*abs(mod((#1)/\latexpro@wavel+0.25,1)-0.5))}
+\def\latexpro@step@zigzag{0.25}
+% scallop: round lobes hanging down from the bottom edge, with a point
+% between two lobes (the top edge gets round dips and points up)
+\newcommand\latexpro@profile@scallop[1]{(1-2*abs(sin((#1)/\latexpro@wavel*180)))}
+\def\latexpro@step@scallop{0.0625}
+% torn: straight pieces between points a fifth of a period apart, each at a
+% pseudo-random height; the same for every box, so both edges match
+\newcommand\latexpro@profile@torn[1]{%
+  (2*mod(abs(sin(round((#1)/(\latexpro@wavel/5))*12.9898+7)*437.585),1)-1)}
+\def\latexpro@step@torn{0.2}
+% \latexpro@depth{style}{s}{t}: how far in from the edge the cut lies
+\newcommand\latexpro@depth[3]{%
+  (2*\latexpro@waveh+(#2)*\latexpro@waveh*\csname latexpro@profile@#1\endcsname{#3})}
+\newcommand\latexpro@wavedepth{\latexpro@depth{wave}}
+\newdimen\latexpro@wavedim
+\newcommand\latexpro@edge[2]{%
+  \ifcsname latexpro@edge@\latexpro@edgestyle\endcsname
+    \csname latexpro@edge@\latexpro@edgestyle\endcsname{#1}{#2}%
+  \else
+    \latexpro@edge@wave{#1}{#2}%
+  \fi}
+% \latexpro@cut{style}{south/north}{s}: cut the edge along the profile
+\newcommand\latexpro@cut[3]{%
+  % the width of the box, from its own west and east edges
+  \pgfextractx\latexpro@wavedim{\pgfpointanchor{frame}{east}}%
+  \pgfextractx\dimen@{\pgfpointanchor{frame}{west}}%
+  \advance\latexpro@wavedim-\dimen@
+  \pgfmathsetmacro\latexpro@wavewn{\latexpro@wavedim}%
+  \pgfmathsetmacro\latexpro@waveh{\latexprowaveheight}%
+  \pgfmathsetmacro\latexpro@wavel{\latexprowavelength*\latexpro@wavefactor}%
+  \pgfmathsetmacro\latexpro@wavestep{\latexpro@wavel*\csname latexpro@step@#1\endcsname}%
+  \pgfmathtruncatemacro\latexpro@waven{max(1,floor(\latexpro@wavewn/\latexpro@wavestep))}%
+  % #3 = 1 for south (cut moves up from the edge), -1 for north (down)
+  \def\latexpro@waves{#3}%
+  \fill[latexpro@pagebg]
+    ([xshift=-1pt,
+      yshift={\latexpro@waves*\latexpro@depth{#1}{\latexpro@waves}{0}*1pt}]frame.#2 west)
+    -- plot[domain=0:\latexpro@waven*\latexpro@wavestep,
+            samples=\latexpro@waven+1, variable=\t]
+       ([xshift=\t pt,
+         yshift={\latexpro@waves*\latexpro@depth{#1}{\latexpro@waves}{\t}*1pt}]frame.#2 west)
+    -- ([xshift=0pt,
+         yshift={\latexpro@waves*\latexpro@depth{#1}{\latexpro@waves}{\latexpro@wavewn}*1pt}]frame.#2 east)
+    -- ([xshift=1pt,
+         yshift={\latexpro@waves*\latexpro@depth{#1}{\latexpro@waves}{\latexpro@wavewn}*1pt}]frame.#2 east)
+    -- ([xshift=1pt, yshift=-\latexpro@waves*1pt]frame.#2 east)
+    -- ([xshift=-1pt, yshift=-\latexpro@waves*1pt]frame.#2 west) -- cycle;}
+\newcommand\latexpro@edge@wave{\latexpro@cut{wave}}
+\newcommand\latexpro@edge@zigzag{\latexpro@cut{zigzag}}
+\newcommand\latexpro@edge@scallop{\latexpro@cut{scallop}}
+\newcommand\latexpro@edge@torn{\latexpro@cut{torn}}
+% fade: page colour from fully covering at the edge to clear
+% \latexprofadeheight in from it
+\newcommand\latexpro@edge@fade[2]{%
+  \fill[latexpro@pagebg, path fading=\ifnum#2>0 north\else south\fi]
+    ([xshift=-1pt, yshift=-#2*1pt]frame.#1 west)
+    rectangle ([xshift=1pt, yshift=#2*\latexprofadeheight]frame.#1 east);}
+% dashed: a dashed line in the border colour where the border would be
+\newcommand\latexpro@edge@dashed[2]{%
+  \draw[latexpro@codeframe, line width=0.6pt, dash pattern=on 4pt off 3pt]
+    ([yshift=#2*0.3pt]frame.#1 west) -- ([yshift=#2*0.3pt]frame.#1 east);}
+% scissors: the dashed line, with scissors on the bottom edge cutting
+% along it to the right (pifont's \ding{34}, mirrored; a cross if pifont is
+% not installed)
+\newcommand\latexpro@scissors{\ifdefined\ding\ding{34}\else$\times$\fi}
+\newcommand\latexpro@edge@scissors[2]{%
+  \latexpro@edge@dashed{#1}{#2}%
+  \ifnum#2>0
+    \node[fill=latexpro@pagebg, text=latexpro@headerinfo, inner sep=0.8pt,
+          font=\small, xscale=-1, transform shape]
+      at ([xshift=18pt, yshift=1pt]frame.#1 west)
+      {\latexpro@scissors};
+  \fi}
+% continued: a label on the right, just inside the edge
+\newcommand\latexpro@edge@continued[2]{%
+  \node[anchor=\ifnum#2>0 south east\else north east\fi, inner sep=0pt,
+        font=\sffamily\scriptsize\itshape, text=latexpro@headerinfo]
+    at ([xshift=-10pt, yshift=#2*4pt]frame.#1 east)
+    {\ifnum#2>0 \latexprocontinuedtext\else\latexprocontinuedfromtext\fi};}
+\newcommand\latexpro@edge@straight[2]{}
+% keywords and operators: listings also hands operators (otherkeywords such
+% as = - +) inside comments and strings to keywordstyle, so colour them only
+% in ordinary code (\lst@Pmode), never in a comment or a string
+\newcommand\latexpro@keywordcolor{%
+  \ifnum\lst@mode=\lst@Pmode\color{latexpro@keyword}\fi}
+% the code font for listings: listings prints * - < > \ _ as plain
+% characters only when the font is \ttdefault (otherwise it uses centred or
+% maths symbols, which sit wrong in another monospace font such as JetBrains
+% Mono), so the code font is made \ttdefault inside each listing
+\newcommand\latexpro@listingfont{\latexprocodefont\edef\ttdefault{\f@family}}
+% the parts every code style shares
+\lstdefinestyle{latexpro-code}{
+  basicstyle=\latexpro@listingfont\small\color{latexpro@text},
+  identifierstyle=\latexpro@ident,
+  keywordstyle=\latexpro@keywordcolor,
+  keywordstyle=[2]\color{latexpro@builtin},
+  keywordstyle=[3]\color{latexpro@constant},
+  keywordstyle=[4]\color{latexpro@keyword}\latexpro@fnnext,
+  stringstyle=\color{latexpro@string},
+  commentstyle=\color{latexpro@comment}\itshape,
+  emphstyle=\global\latexpro@fnfalse\latexpro@functionstyle,
+  numbers=left,
+  numberstyle=\scriptsize\latexprocodefont\color{latexpro@number},
+  numbersep=1em,
+  xleftmargin=1.6em,
+  frame=none,
+  aboveskip=0pt,
+  belowskip=0pt,
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  tabsize=4,
+  columns=fullflexible,
+  keepspaces=true,
+  upquote=true,
+  % pdflatex: print the usual non-ASCII letters in code and comments
+  extendedchars=true,
+  literate=
+    {æ}{{\ae}}1 {ø}{{\o}}1 {å}{{\aa}}1 {Æ}{{\AE}}1 {Ø}{{\O}}1 {Å}{{\AA}}1
+    {ä}{{\"a}}1 {ö}{{\"o}}1 {ü}{{\"u}}1 {Ä}{{\"A}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1
+    {é}{{\'e}}1 {è}{{\`e}}1 {ß}{{\ss}}1
+    {—}{{-{}-}}1 {–}{{-}}1 {“}{{``}}1 {”}{{''}}1 {‘}{{`}}1 {’}{{'}}1
+    {…}{{\ldots}}1 {×}{{$\times$}}1 {·}{{$\cdot$}}1
+}
+
+% ---------------------------------------------------------------------------
+% Python code listings
+% ---------------------------------------------------------------------------
+\lstdefinestyle{latexpro-python}{
+  style=latexpro-code,
+  language=Python,
+  deletekeywords={def,class,True,False,None,print},
+  morekeywords={async,await,nonlocal,with,as,yield},
+  % operators share the keyword colour
+  otherkeywords={==,!=,<=,>=,**,//,+=,-=,*=,/=,->,=,+,-,*,/,\%,<,>,&,|,^,~,@},
+  morekeywords=[2]{abs,all,any,bool,dict,enumerate,float,int,len,list,map,
+    max,min,open,print,range,reversed,round,set,sorted,str,sum,tuple,type,
+    zip,isinstance,super,input,filter,iter,next,repr,format,hash,id,divmod,pow},
+  morekeywords=[3]{True,False,None,self,cls},
+  morekeywords=[4]{def,class},
+  morestring=[s]{"""}{"""},
+  morestring=[s]{'''}{'''},
+}
+% \py{...}: same colours, no line numbers
+\lstdefinestyle{latexpro-python-inline}{
+  style=latexpro-python, numbers=none, basicstyle=\latexpro@listingfont\color{latexpro@text}}
+
+\ExplSyntaxOn
+% [caption=..] / [title=..] go in the header bar, every other option to listings
+\tl_new:N \l__latexpro_code_caption_tl
+\clist_new:N \l__latexpro_code_lst_clist
+\tl_new:N \l__latexpro_code_span_tl
+\box_new:N \l__latexpro_code_box
+\bool_new:N \l__latexpro_code_filename_bool
+\keys_define:nn { latexpro / code }
+  {
+    caption .tl_set:N = \l__latexpro_code_caption_tl ,
+    title   .tl_set:N = \l__latexpro_code_caption_tl ,
+    % span=auto (default): kept in one piece, unless it is taller than a
+    % page, then it breaks across pages; [span] / span=true: may always
+    % break; span=false: never breaks
+    span    .choices:nn =
+      { auto , true , false }
+      { \tl_set_eq:NN \l__latexpro_code_span_tl \l_keys_choice_tl } ,
+    span    .default:n  = true ,
+    % [filename=false]: no file name on the right of the header bar
+    filename .bool_set:N = \l__latexpro_code_filename_bool ,
+    filename .default:n  = true ,
+    % [length=x]: the wave on a split edge has x times the usual period
+    length   .code:n     = { \tl_set:Nn \latexpro@wavefactor {#1} } ,
+    % [edge=zigzag]: the look of the edges where the box is split
+    edge     .choices:nn =
+      { wave , zigzag , scallop , torn , fade , dashed , scissors , continued , straight }
+      { \tl_set_eq:NN \latexpro@edgestyle \l_keys_choice_tl } ,
+  }
+% \latexprocodesetup{edge=zigzag, length=2}: the default options of every
+% later code block (any option of \python, \pseudo, pythoncode and pseudo;
+% a block's own options still win). Options of \usepackage{latex-pro} /
+% \usepackage{latex-pro-code} with an = in them go here too, e.g.
+% \usepackage[edge=torn]{latex-pro}. A second \latexprocodesetup adds to
+% (and overrides) the first; inside a group it lasts to the end of the group.
+\clist_new:N \l__latexpro_code_defaults_clist
+\NewDocumentCommand \latexprocodesetup { m }
+  {
+    % set them once now, so a wrong value (edge=wavy) is reported here
+    \group_begin:
+      \keys_set_known:nnN { latexpro / code } {#1} \l__latexpro_code_lst_clist
+    \group_end:
+    \clist_put_right:Nn \l__latexpro_code_defaults_clist {#1}
+  }
+\AddToHook{begindocument/before}
+  {
+    \tcbset
+      {
+        latexpro-code-span/.code =
+          {
+            \str_if_eq:VnT \l__latexpro_code_span_tl { true }
+              { \pgfkeysalso { breakable } }
+          }
+      }
+  }
+% Function names: every name written as name( or after def / class /
+% function / procedure / algorithm somewhere in the file is coloured as a
+% function wherever it appears as a name (not inside strings or comments).
+\ior_new:N \g__latexpro_code_ior
+\seq_new:N \l__latexpro_code_names_seq
+\seq_new:N \l__latexpro_code_found_seq
+\str_new:N \l__latexpro_code_name_str
+\prg_new_conditional:Npnn \__latexpro_code_reserved:n #1 { F }
+  {
+    \str_case:nnTF {#1}
+      {
+        {if}{} {elif}{} {elseif}{} {while}{} {for}{} {foreach}{} {return}{}
+        {and}{} {or}{} {not}{} {in}{} {is}{} {lambda}{} {yield}{} {assert}{}
+        {del}{} {with}{} {except}{} {raise}{} {print}{} {then}{} {do}{}
+        {def}{} {class}{} {function}{} {procedure}{} {algorithm}{}
+        {until}{} {else}{} {to}{} {await}{} {import}{} {from}{} {as}{}
+      }
+      { \prg_return_true: } { \prg_return_false: }
+  }
+\cs_generate_variant:Nn \__latexpro_code_reserved:nF { V }
+\cs_generate_variant:Nn \keys_set_known:nnN { ne }
+\cs_generate_variant:Nn \regex_extract_all:nnN { nV }
+\bool_new:N \l__latexpro_code_hyphen_bool
+\str_new:N \l__latexpro_code_line_str
+\cs_new_protected:Npn \__latexpro_code_harvest:n #1
+  {
+    \seq_clear:N \l__latexpro_code_names_seq
+    \ior_open:NnT \g__latexpro_code_ior {#1}
+      {
+        \ior_str_map_inline:Nn \g__latexpro_code_ior
+          {
+            \str_set:Nn \l__latexpro_code_line_str {##1}
+            % pseudocode: the parts of a hyphenated name (ADD and SKYLINE in
+            % function ADD-building-to-SKYLINE) are not names of their own
+            \bool_if:NT \l__latexpro_code_hyphen_bool
+              {
+                \regex_replace_all:nnN
+                  { [A-Za-z][A-Za-z0-9]* (?: - [A-Za-z][A-Za-z0-9]* )+ }
+                  { 0 } \l__latexpro_code_line_str
+              }
+            \regex_extract_all:nVN
+              { (?: [A-Za-z_]\w* \s* \( ) | (?: (?:def|class|function|procedure|algorithm) \s+ [A-Za-z_]\w* ) }
+              \l__latexpro_code_line_str \l__latexpro_code_found_seq
+            \seq_map_inline:Nn \l__latexpro_code_found_seq
+              {
+                \str_set:Nn \l__latexpro_code_name_str {####1}
+                \regex_replace_once:nnN { \s* \( \Z } { } \l__latexpro_code_name_str
+                \regex_replace_once:nnN
+                  { \A (?:def|class|function|procedure|algorithm) \s+ } { }
+                  \l__latexpro_code_name_str
+                \__latexpro_code_reserved:VF \l__latexpro_code_name_str
+                  {
+                    \seq_if_in:NVF \l__latexpro_code_names_seq \l__latexpro_code_name_str
+                      { \seq_put_right:NV \l__latexpro_code_names_seq \l__latexpro_code_name_str }
+                  }
+              }
+          }
+        \ior_close:N \g__latexpro_code_ior
+      }
+    \__latexpro_code_harvest_hyphen:n {#1}
+    \use:e
+      {
+        \exp_not:N \lstset
+          { emph = { \seq_use:Nn \l__latexpro_code_names_seq { , } } }
+      }
+  }
+% Function names with hyphens (ADD-building-to-SKYLINE): listings reads "-"
+% as an operator, so these are collected on their own (lower-cased, as
+% pseudocode is not case-sensitive) and \pseudo prints them in one piece
+% (see \latexprohyphenname).
+\seq_new:N \l__latexpro_code_hyphen_names_seq
+\cs_new_protected:Npn \__latexpro_code_harvest_hyphen:n #1
+  {
+    \seq_clear:N \l__latexpro_code_hyphen_names_seq
+    \ior_open:NnT \g__latexpro_code_ior {#1}
+      {
+        \ior_str_map_inline:Nn \g__latexpro_code_ior
+          {
+            \regex_extract_all:nnN
+              {
+                (?: [A-Za-z][A-Za-z0-9]* (?: - [A-Za-z][A-Za-z0-9]* )+ \s* \( )
+                | (?: (?:def|class|function|procedure|algorithm) \s+
+                      [A-Za-z][A-Za-z0-9]* (?: - [A-Za-z][A-Za-z0-9]* )+ )
+              }
+              {##1} \l__latexpro_code_found_seq
+            \seq_map_inline:Nn \l__latexpro_code_found_seq
+              {
+                \str_set:Ne \l__latexpro_code_name_str { \str_foldcase:n {####1} }
+                \regex_replace_once:nnN { \s* \( \Z } { } \l__latexpro_code_name_str
+                \regex_replace_once:nnN
+                  { \A (?:def|class|function|procedure|algorithm) \s+ } { }
+                  \l__latexpro_code_name_str
+                \seq_if_in:NVF \l__latexpro_code_hyphen_names_seq \l__latexpro_code_name_str
+                  { \seq_put_right:NV \l__latexpro_code_hyphen_names_seq \l__latexpro_code_name_str }
+              }
+          }
+        \ior_close:N \g__latexpro_code_ior
+      }
+  }
+% #1 options, #2 text for the right of the header when there is no caption
+% (file name or empty): sets the caption, span and the listings options
+\cs_new_protected:Npn \__latexpro_code_setup:nn #1#2
+  {
+    \tl_clear:N \l__latexpro_code_caption_tl
+    \tl_set:Nn \l__latexpro_code_span_tl { auto }
+    \bool_set_true:N \l__latexpro_code_filename_bool
+    \tl_set:Nn \latexpro@wavefactor { 1 }
+    \tl_set:Nn \latexpro@edgestyle { wave }
+    % the defaults from \latexprocodesetup, then the block's own options
+    \keys_set_known:neN { latexpro / code }
+      { \exp_not:V \l__latexpro_code_defaults_clist , \exp_not:n {#1} }
+      \l__latexpro_code_lst_clist
+    \bool_lazy_and:nnT
+      { \tl_if_empty_p:N \l__latexpro_code_caption_tl }
+      { \l__latexpro_code_filename_bool }
+      { \tl_set:Nn \l__latexpro_code_caption_tl {#2} }
+  }
+\cs_new_protected:Npn \__latexpro_code_opts:n #1 { \__latexpro_code_setup:nn {#1} { } }
+% #1 language name, #2 star bool (no numbers), #3 listings style, #4 file
+\cs_new_protected:Npn \__latexpro_code_draw:nNnn #1#2#3#4
+  {
+    % a group: \tcolorbox without \begin{tcolorbox} has none of its own, so
+    % its options (breakable!) would stay set for every later box
+    \group_begin:
+    \tcolorbox
+      [
+        latexpro-code ,
+        latexpro-code-span ,
+        title =
+          {
+            #1 \hfill
+            { \color{latexpro@headerinfo} \l__latexpro_code_caption_tl }
+          }
+      ]
+    \bool_if:NT #2 { \lstset { numbers = none , xleftmargin = 0pt } }
+    \global \latexpro@fnfalse
+    \str_if_eq:nnTF {#3} { latexpro-pseudo }
+      { \bool_set_true:N \l__latexpro_code_hyphen_bool }
+      { \bool_set_false:N \l__latexpro_code_hyphen_bool }
+    \__latexpro_code_harvest:n {#4}
+    \use:e
+      {
+        \exp_not:N \lstinputlisting
+          [ style = #3 , \exp_not:V \l__latexpro_code_lst_clist ]
+      }
+      {#4}
+    \endtcolorbox
+    \group_end:
+  }
+% One code box. #1 language, #2 star bool, #3 options, #4 header text when
+% there is no caption, #5 listings style, #6 file.
+% With span=auto the box is first set unbroken in a \vbox and measured: if
+% it is taller than a page it is made breakable, so it runs on over the next
+% pages instead of running off the bottom of one.
+\cs_new_protected:Npn \__latexpro_code_box:nNnnnn #1#2#3#4#5#6
+  {
+    \__latexpro_code_setup:nn {#3} {#4}
+    \str_if_eq:VnT \l__latexpro_code_span_tl { auto }
+      {
+        \tl_set:Nn \l__latexpro_code_span_tl { false }
+        \vbox_set:Nn \l__latexpro_code_box
+          { \__latexpro_code_draw:nNnn {#1} #2 {#5} {#6} }
+        \dim_compare:nNnT
+          { \box_ht_plus_dp:N \l__latexpro_code_box } > { \textheight }
+          { \tl_set:Nn \l__latexpro_code_span_tl { true } }
+        \box_clear:N \l__latexpro_code_box
+      }
+    \__latexpro_code_draw:nNnn {#1} #2 {#5} {#6}
+  }
+\cs_new:Npn \__latexpro_code_file:n #1
+  { { \latexprocodefont \footnotesize \tl_to_str:n {#1} } }
+% \python[options]{file.py};  \python* drops the line numbers
+\NewDocumentCommand \python { s O{} m }
+  {
+    \bool_set:Nn \l_tmpa_bool {#1}
+    \__latexpro_code_box:nNnnnn { Python } \l_tmpa_bool {#2}
+      { \__latexpro_code_file:n {#3} } { latexpro-python } {#3}
+  }
+% Environments whose body is code (pythoncode, pseudo): the body is written
+% verbatim to a file and, once the environment has ended (outside its group
+% the normal catcodes are back, so mathescape works), handed to #1, a
+% function taking the star bool and the options.
+\bool_new:N \l__latexpro_env_star_bool
+\tl_new:N \l__latexpro_env_opts_tl
+\cs_new_protected:Npn \__latexpro_env_begin:nnn #1#2#3
+  {
+    % #1 file, #2 star (boolean expression), #3 options
+    \bool_set:Nn \l__latexpro_env_star_bool {#2}
+    \tl_set:Nn \l__latexpro_env_opts_tl {#3}
+    \tcbverbatimwrite {#1}
+  }
+\cs_generate_variant:Nn \hook_gput_next_code:nn { ee }
+\cs_new_protected:Npn \__latexpro_env_end:N #1
+  {
+    \endtcbverbatimwrite
+    \hook_gput_next_code:ee { env / \@currenvir / after }
+      {
+        \exp_not:N #1
+          \bool_if:NTF \l__latexpro_env_star_bool
+            { \exp_not:N \c_true_bool } { \exp_not:N \c_false_bool }
+          { \exp_not:V \l__latexpro_env_opts_tl }
+      }
+  }
+% \begin{pythoncode}[options] ... \end{pythoncode}: Python typed in the
+% .tex file; pythoncode* drops the line numbers
+\str_const:Ne \c__latexpro_python_env_file_str { \c_sys_jobname_str -pythoncode.tmp }
+\cs_new_protected:Npn \__latexpro_python_env_run:Nn #1#2
+  {
+    \__latexpro_code_box:nNnnnn { Python } #1 {#2} { } { latexpro-python }
+      { \c__latexpro_python_env_file_str }
+  }
+\NewDocumentEnvironment { pythoncode } { O{} }
+  {
+    \__latexpro_env_begin:nnn { \c__latexpro_python_env_file_str }
+      { \c_false_bool } {#1}
+  }
+  { \__latexpro_env_end:N \__latexpro_python_env_run:Nn }
+\NewDocumentEnvironment { pythoncode* } { O{} }
+  {
+    \__latexpro_env_begin:nnn { \c__latexpro_python_env_file_str }
+      { \c_true_bool } {#1}
+  }
+  { \__latexpro_env_end:N \__latexpro_python_env_run:Nn }
+\ExplSyntaxOff
+% \py{code} or \py|code| for a short piece of Python inside a sentence
+\NewDocumentCommand\py{v}{\lstinline[style=latexpro-python-inline]{#1}}
+% ---------------------------------------------------------------------------
+% Pseudocode listings
+% ---------------------------------------------------------------------------
+% \pseudo[options]{file.txt} reads a plain-text pseudocode file and
+%  * indents it by its keywords (lines after function/if..then/for/while/
+%    repeat/else/..do are indented, end/else/until lines step back out),
+%  * prints TeX commands such as \geq, \leq, \neq, \gets, \in, \alpha_i
+%    as maths, and <=, >=, !=, <-, -> as the symbols,
+%  * colours keywords, function names and // comments.
+% A line that already holds $...$ is left for listings' mathescape.
+% \pseudo* drops the line numbers.  \pseudoindentfalse keeps the file's own
+% indentation instead of re-indenting it.
+\lstdefinelanguage{latexpro-pseudo}{
+  sensitive=false,
+  morekeywords={return,returns,if,then,else,
+    elseif,elif,end,endif,endfor,endwhile,endfunction,endprocedure,for,
+    foreach,each,to,downto,by,step,do,in,while,repeat,until,loop,break,
+    continue,and,or,not,xor,let,var,of,from,begin,goto,switch,case,default},
+  % operators share the keyword colour; "/" is coloured by the
+  % pre-processing instead (as an otherkeyword it would stop listings from
+  % seeing // and /* as the start of a comment)
+  otherkeywords={:=,==,=,+,-,\%},
+  morekeywords=[2]{print,input,output,call,length,len,max,min,abs,swap},
+  morekeywords=[3]{true,false,null,nil,none},
+  % the name after these is coloured as a function name
+  morekeywords=[4]{function,procedure,algorithm},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+}
+\lstdefinestyle{latexpro-pseudo}{
+  style=latexpro-code,
+  language=latexpro-pseudo,
+  mathescape=true,
+}
+\newif\ifpseudoindent \pseudoindenttrue
+\ExplSyntaxOn
+\cs_generate_variant:Nn \str_case:nnT { Vn , en }
+\cs_generate_variant:Nn \str_foldcase:n { e }
+\ior_new:N \g__latexpro_pseudo_ior
+\iow_new:N \g__latexpro_pseudo_iow
+\str_const:Ne \c__latexpro_pseudo_file_str { \c_sys_jobname_str -pseudo.tmp }
+\str_const:Ne \c__latexpro_tab_str { \char_generate:nn { 9 } { 12 } }
+\int_new:N  \l__latexpro_depth_int
+\int_new:N  \l__latexpro_next_int
+\str_new:N  \l__latexpro_line_str
+\str_new:N  \l__latexpro_first_str
+\str_new:N  \l__latexpro_last_str
+\seq_new:N  \l__latexpro_words_seq
+\bool_new:N \l__latexpro_open_bool
+
+% first word that closes a block: the line is printed one step further out
+\prg_new_conditional:Npnn \__latexpro_pseudo_closes:n #1 { T , TF }
+  {
+    \str_case:nnTF {#1}
+      {
+        {end}{} {endif}{} {endfor}{} {endwhile}{} {endfunction}{}
+        {endprocedure}{} {endloop}{} {until}{} {else}{} {elseif}{}
+        {elif}{} {done}{} {fi}{}
+      }
+      { \prg_return_true: } { \prg_return_false: }
+  }
+% first word that always opens a block
+\prg_new_conditional:Npnn \__latexpro_pseudo_opens:n #1 { T , TF }
+  {
+    \str_case:nnTF {#1}
+      {
+        {function}{} {procedure}{} {algorithm}{} {repeat}{} {else}{}
+        {loop}{} {begin}{} {switch}{} {case}{} {default}{}
+      }
+      { \prg_return_true: } { \prg_return_false: }
+  }
+% first word that opens a block unless it is a one-liner ("if x then y")
+\prg_new_conditional:Npnn \__latexpro_pseudo_head:n #1 { T , TF }
+  {
+    \str_case:nnTF {#1}
+      { {if}{} {elseif}{} {elif}{} {for}{} {foreach}{} {while}{} }
+      { \prg_return_true: } { \prg_return_false: }
+  }
+
+% maths in a line that has no $...$ of its own:
+%   a_i -> $a_i$,  \geq -> $\geq$,  <= >= != <- -> < > * -> symbols
+\str_new:N \l__latexpro_pseudo_code_str
+\str_new:N \l__latexpro_pseudo_comment_str
+\seq_new:N \l__latexpro_pseudo_parts_seq
+\cs_new_protected:Npn \__latexpro_pseudo_math:N #1
+  {
+    \str_if_in:NnF #1 { $ }
+      {
+        % split off a // comment: the code part also gets its "/" coloured
+        \seq_set_split_keep_spaces:NnV \l__latexpro_pseudo_parts_seq { // } #1
+        \seq_pop_left:NN \l__latexpro_pseudo_parts_seq \l__latexpro_pseudo_code_str
+        \seq_if_empty:NTF \l__latexpro_pseudo_parts_seq
+          { \str_clear:N \l__latexpro_pseudo_comment_str }
+          {
+            \str_set:Ne \l__latexpro_pseudo_comment_str
+              { // \seq_use:Nn \l__latexpro_pseudo_parts_seq { // } }
+          }
+        % keep /* and */ away (a lone "/" is division: keyword colour) from the "*" and "/" replacements
+        \regex_replace_all:nnN { /\* } { @@latexpro@open@@ } \l__latexpro_pseudo_code_str
+        \regex_replace_all:nnN { \*/ } { @@latexpro@close@@ } \l__latexpro_pseudo_code_str
+        \__latexpro_pseudo_math_part:N \l__latexpro_pseudo_code_str
+        % names with hyphens (ADD-building-to-SKYLINE, left-part) are one
+        % name, not a subtraction: a "-" between two letters joins them.
+        % A "-" before a digit or a space (n-1, a - b) stays an operator.
+        \regex_replace_all:nnN
+          { \b ([A-Za-z][A-Za-z0-9]* (?: - [A-Za-z][A-Za-z0-9]* )+ ) }
+          { \$ \\mbox \{ \\latexprohyphenname \{ \1 \} \} \$ } \l__latexpro_pseudo_code_str
+        \regex_replace_all:nnN { / }
+          { \$ \{ \\color \{ latexpro@keyword \} / \} \$ } \l__latexpro_pseudo_code_str
+        \regex_replace_all:nnN { @@latexpro@open@@ } { /* } \l__latexpro_pseudo_code_str
+        \regex_replace_all:nnN { @@latexpro@close@@ } { */ } \l__latexpro_pseudo_code_str
+        \__latexpro_pseudo_math_part:N \l__latexpro_pseudo_comment_str
+        \str_set:Ne #1 { \l__latexpro_pseudo_code_str \l__latexpro_pseudo_comment_str }
+      }
+  }
+\cs_new_protected:Npn \__latexpro_pseudo_math_part:N #1
+  {
+        % TeX commands (\geq, \alpha_i) first, so the \latexprocodemath
+        % added below is not wrapped again
+        \regex_replace_all:nnN
+          { (\\[A-Za-z]+ (?: \s* [_^] (?: \{[^\}]*\} | \\[A-Za-z]+ | \w ) )* ) }
+          { \$ \1 \$ } #1
+        % A_i, A_length, a_{n+1}: maths, with the letters in the code font
+        \regex_replace_all:nnN
+          { \b ([A-Za-z]) _ (?: \{([^\}]*)\} | ([A-Za-z0-9]+) ) }
+          { \$ \\latexprocodemath\{\1\} _ \{ \\latexprocodemath\{\2\3\} \} \$ } #1
+        \regex_replace_all:nnN { <= } { \$\\leq\$ } #1
+        \regex_replace_all:nnN { >= } { \$\\geq\$ } #1
+        \regex_replace_all:nnN { != } { \$\\neq\$ } #1
+        \regex_replace_all:nnN { <- } { \$\\gets\$ } #1
+        \regex_replace_all:nnN { -> } { \$\\to\$ } #1
+        \regex_replace_all:nnN { ([<>]) } { \$\1\$ } #1
+        \regex_replace_all:nnN { \* } { \$\\cdot\$ } #1
+  }
+% A \begin{pseudo} / \begin{pythoncode} line inside a pseudocode block means
+% an \end{pseudo} is missing above it (the block runs on into the next one).
+% Printed as code it would give "Missing \endcsname", so stop with a clear
+% message instead and leave that line out.
+\msg_new:nnnn { latex-pro-code } { nested-begin }
+  { \iow_char:N \\begin{#1}~inside~a~pseudocode~block~(line~#2~of~the~block).~
+    Is~an~\iow_char:N \\end{pseudo}~missing~above~it? }
+  { Every~\iow_char:N \\begin{pseudo}~needs~its~own~\iow_char:N \\end{pseudo}.~
+    The~line~is~left~out. }
+\int_new:N \l__latexpro_pseudo_lineno_int
+\str_new:N \l__latexpro_pseudo_envname_str
+\cs_new_protected:Npn \__latexpro_pseudo_line:n #1
+  {
+    \int_incr:N \l__latexpro_pseudo_lineno_int
+    \regex_extract_once:nnNTF
+      { \\begin \s* \{ ( pseudo\*? | pseudocode\*? | pythoncode\*? ) \} }
+      {#1} \l_tmpa_seq
+      {
+        \str_set:Ne \l__latexpro_pseudo_envname_str { \seq_item:Nn \l_tmpa_seq { 2 } }
+        \msg_error:nnVV { latex-pro-code } { nested-begin }
+          \l__latexpro_pseudo_envname_str \l__latexpro_pseudo_lineno_int
+      }
+      { \__latexpro_pseudo_line_do:n {#1} }
+  }
+\cs_generate_variant:Nn \msg_error:nnnn { nnVV }
+\cs_new_protected:Npn \__latexpro_pseudo_line_do:n #1
+  {
+    \str_set:Nn \l__latexpro_line_str {#1}
+    \ifpseudoindent
+      \exp_args:NNV \str_replace_all:Nnn \l__latexpro_line_str
+        \c__latexpro_tab_str { ~ }
+      \str_set:Ne \l__latexpro_line_str
+        { \tl_trim_spaces:V \l__latexpro_line_str }
+      \seq_set_split:NnV \l__latexpro_words_seq { ~ } \l__latexpro_line_str
+      \seq_remove_all:Nn \l__latexpro_words_seq { }
+      \str_set:Ne \l__latexpro_first_str
+        { \str_foldcase:e { \seq_item:Nn \l__latexpro_words_seq { 1 } } }
+      \str_set:Ne \l__latexpro_last_str
+        { \str_foldcase:e { \seq_item:Nn \l__latexpro_words_seq { -1 } } }
+      % "if(x" -> "if",  "x):" -> ":"
+      \regex_replace_once:nnN { (.)\(.* } { \1 } \l__latexpro_first_str
+      \regex_replace_once:nnN { .*: \Z } { : } \l__latexpro_last_str
+      % C-style braces: "}" closes like end, a trailing "{" opens like then
+      \str_if_eq:NNT \l__latexpro_first_str \c_right_brace_str
+        { \str_set:Nn \l__latexpro_first_str { end } }
+      \str_if_eq:NNT \l__latexpro_last_str \c_left_brace_str
+        { \str_set:Nn \l__latexpro_last_str { then } }
+      \exp_args:NV \__latexpro_pseudo_closes:nT \l__latexpro_first_str
+        { \int_decr:N \l__latexpro_depth_int }
+      \int_compare:nNnT \l__latexpro_depth_int < \c_zero_int
+        { \int_zero:N \l__latexpro_depth_int }
+      \bool_set_false:N \l__latexpro_open_bool
+      \str_case:VnT \l__latexpro_last_str
+        { {then}{} {do}{} {:}{} {begin}{} {repeat}{} {else}{} }
+        { \bool_set_true:N \l__latexpro_open_bool }
+      \exp_args:NV \__latexpro_pseudo_opens:nT \l__latexpro_first_str
+        { \bool_set_true:N \l__latexpro_open_bool }
+      \exp_args:NV \__latexpro_pseudo_head:nT \l__latexpro_first_str
+        {
+          % a one-liner ("if x then break") has then/do before its last word
+          \seq_pop_right:NN \l__latexpro_words_seq \l_tmpa_tl
+          \bool_set_true:N \l_tmpa_bool
+          \seq_map_inline:Nn \l__latexpro_words_seq
+            {
+              \str_case:enT { \str_foldcase:n {##1} } { {then}{} {do}{} }
+                { \bool_set_false:N \l_tmpa_bool }
+            }
+          \bool_if:NT \l_tmpa_bool
+            { \bool_set_true:N \l__latexpro_open_bool }
+        }
+      \__latexpro_pseudo_math:N \l__latexpro_line_str
+      \iow_now:Ne \g__latexpro_pseudo_iow
+        {
+          \str_if_empty:NF \l__latexpro_line_str
+            { \prg_replicate:nn { 4 * \l__latexpro_depth_int } { \c_space_tl } }
+          \l__latexpro_line_str
+        }
+      \bool_if:NT \l__latexpro_open_bool
+        { \int_incr:N \l__latexpro_depth_int }
+    \else
+      % keep the file's own indentation
+      \__latexpro_pseudo_math:N \l__latexpro_line_str
+      \iow_now:Ne \g__latexpro_pseudo_iow { \l__latexpro_line_str }
+    \fi
+  }
+
+% \latexprohyphenname{ADD-building-to-SKYLINE}: a name with hyphens in a
+% pseudocode block, printed in one piece. It is a function name (small caps,
+% function colour, like \method) when it follows function / procedure /
+% algorithm or is written name( somewhere in the block, otherwise a variable
+% (plain code text). Inside a comment or a string it is left as it is.
+% the $...$ of mathescape interrupts listings' modes and keeps them in
+% \lst@modestack: in plain code (not in a comment or a string) that holds
+% only the Pmode every listing starts in
+\tl_const:Nn \latexpro@plainmodes
+  { { \lst@EnterMode { \lst@Pmode } { \lst@SelectCharTable } } }
+\str_new:N \l__latexpro_hyphen_name_str
+\NewDocumentCommand \latexprohyphenname { m }
+  {
+    \tl_if_eq:NNTF \lst@modestack \latexpro@plainmodes
+      {
+        \str_set:Ne \l__latexpro_hyphen_name_str { \str_foldcase:n {#1} }
+        \legacy_if:nTF { latexpro@fn }
+          { \global \latexpro@fnfalse \latexpro@functionstyle }
+          {
+            \seq_if_in:NVT \l__latexpro_code_hyphen_names_seq
+              \l__latexpro_hyphen_name_str
+              { \latexpro@functionstyle }
+          }
+      }
+      { }
+    #1
+  }
+% write the re-indented copy of #1 to \jobname-pseudo.tmp
+\cs_new_protected:Npn \__latexpro_pseudo_prepare:n #1
+  {
+    \ior_open:Nn \g__latexpro_pseudo_ior {#1}
+    \iow_open:Nn \g__latexpro_pseudo_iow { \c__latexpro_pseudo_file_str }
+    \int_zero:N \l__latexpro_depth_int
+    \int_zero:N \l__latexpro_pseudo_lineno_int
+    \ior_str_map_inline:Nn \g__latexpro_pseudo_ior
+      { \__latexpro_pseudo_line:n {##1} }
+    \iow_close:N \g__latexpro_pseudo_iow
+    \ior_close:N \g__latexpro_pseudo_ior
+  }
+% #1 star bool, #2 options, #3 file, #4 header text when there is no caption
+\cs_new_protected:Npn \__latexpro_pseudo_input:Nnnn #1#2#3#4
+  {
+    \__latexpro_pseudo_prepare:n {#3}
+    \__latexpro_code_box:nNnnnn { Pseudocode } #1 {#2} {#4} { latexpro-pseudo }
+      { \c__latexpro_pseudo_file_str }
+  }
+\NewDocumentCommand \__latexpro_pseudo_cmd: {s O{} m}
+  {
+    \bool_set:Nn \l_tmpa_bool {#1}
+    \__latexpro_pseudo_input:Nnnn \l_tmpa_bool {#2} {#3}
+      { \__latexpro_code_file:n {#3} }
+  }
+% \begin{pseudo}[options] ... \end{pseudo}: the body is written verbatim to
+% \jobname-pseudoenv.tmp and then handled like \pseudo; the header shows only
+% the caption (there is no file name).  pseudo* drops the line numbers.
+\str_const:Ne \c__latexpro_pseudoenv_file_str { \c_sys_jobname_str -pseudoenv.tmp }
+\cs_new_protected:Npn \__latexpro_pseudoenv_run:Nn #1#2
+  { \__latexpro_pseudo_input:Nnnn #1 {#2} { \c__latexpro_pseudoenv_file_str } { } }
+\NewDocumentCommand \__latexpro_pseudoenv: { O{} }
+  {
+    \__latexpro_env_begin:nnn { \c__latexpro_pseudoenv_file_str }
+      { \c_false_bool } {#1}
+  }
+\NewDocumentCommand \__latexpro_pseudoenv_star: { O{} }
+  {
+    \__latexpro_env_begin:nnn { \c__latexpro_pseudoenv_file_str }
+      { \c_true_bool } {#1}
+  }
+\cs_new_protected:Npn \__latexpro_pseudoenv_end:
+  { \__latexpro_env_end:N \__latexpro_pseudoenv_run:Nn }
+% \pseudo is both a command (\pseudo{file.txt}) and an environment
+% (\begin{pseudo} ... \end{pseudo}): \begin{pseudo} sets \@currenvir to
+% "pseudo" before it calls \pseudo, which then starts the environment.
+\str_const:Nn \c__latexpro_pseudo_env_str { pseudo }
+\cs_new_protected:Npn \pseudo
+  {
+    \str_if_eq:VVTF \@currenvir \c__latexpro_pseudo_env_str
+      { \__latexpro_pseudoenv: } { \__latexpro_pseudo_cmd: }
+  }
+\cs_new_protected:Npn \endpseudo { \__latexpro_pseudoenv_end: }
+\cs_new_protected:cpn { pseudo* } { \__latexpro_pseudoenv_star: }
+\cs_new_protected:cpn { endpseudo* } { \__latexpro_pseudoenv_end: }
+% the same under a longer name
+\cs_new_eq:NN \pseudocode \__latexpro_pseudoenv:
+\cs_new_eq:NN \endpseudocode \__latexpro_pseudoenv_end:
+\cs_new_eq:cc { pseudocode* } { pseudo* }
+\cs_new_eq:cc { endpseudocode* } { endpseudo* }
+% \variable{lo}: a variable in running text, written as in a pseudocode
+% block: the code font and text colour; with a subscript or superscript
+% (\variable{A_i}, \variable{a_{n+1}}) it is set as maths, as \pseudo does
+\NewDocumentCommand \variable { m }
+  {
+    \regex_match:nnTF { \c[DU]. } {#1}
+      {
+        % letters and digits (A, length, n, 1) in the code font, the rest
+        % (_ ^ + \alpha ...) as maths
+        \tl_set:Nn \l_tmpa_tl {#1}
+        % a name with hyphens (left-sum) stays one name, its "-" a hyphen
+        \regex_replace_all:nnN
+          { ( [A-Za-z][A-Za-z0-9]* (?: - [A-Za-z][A-Za-z0-9]* )+ | [A-Za-z0-9]+ ) }
+          { \cB\{ \c{latexprocodemath} \cB\{ \1 \cE\} \cE\} } \l_tmpa_tl
+        { \color{latexpro@text} \ensuremath { \l_tmpa_tl } }
+      }
+      { { \latexprocodefont \color{latexpro@text} #1 } }
+  }
+\ExplSyntaxOff
+
+% Package options: \usepackage[edge=zigzag, length=2]{latex-pro-code} is
+% \latexprocodesetup{edge=zigzag, length=2}
+\DeclareOption*{\expandafter\latexprocodesetup\expandafter{\CurrentOption}}
+\ProcessOptions\relax
+
+\endinput

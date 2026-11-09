@@ -1,0 +1,11 @@
+% latex-pro-links.sty without hyperref: codes are not clickable, the
+% starred form prints the link with \url.
+\documentclass{article}
+\usepackage{latex-pro-links}
+\usepackage{lptest}
+\begin{document}
+\lptrue{hyperref not loaded}{\ifx\href\undefined}
+\qr{https://example.com/a_b?x=%20#top}
+\qr*[1.5cm]{https://example.com/a_b?x=%20#top}
+\lpsametext{size option}{\qr[3cm]{https://a.b}}{\qrcode[height=3cm,nolink]{https://a.b}}
+\end{document}

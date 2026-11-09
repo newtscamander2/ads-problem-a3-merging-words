@@ -1,0 +1,19 @@
+% The full package: every module together, options passed through.
+\documentclass{article}
+\usepackage[square]{latex-pro}
+\usepackage{lptest}
+\begin{document}
+\lpsame{[square] reaches latex-pro-matrix}{\mat{a}}{\bmat{a}}
+\lpsame{[square] reaches calculus}{\gradient*{1}}{\bmat{\dfrac{\partial f}{\partial x_1}}}
+\lpdefined{matrix loaded}{\symmat}
+\lpdefined{calculus loaded}{\hessian}
+\lpdefined{theorems loaded}{\proposition}
+\lpdefined{sets loaded}{\setof}
+\lpdefined{notation loaded}{\norm}
+\lpdefined{code loaded}{\python}
+\lpdefined{links loaded}{\qr}
+\begin{proposition}\label{prop:x}
+  $\hessian*{2} = \symmat[e,d]{2}$ and $x \in \R^n$, $\norm{x} \le 1$.
+\end{proposition}
+\lpref{reference with everything loaded}{prop:x}{1}
+\end{document}

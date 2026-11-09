@@ -1,0 +1,65 @@
+% latex-pro.sty -- shortcut commands for maths documents
+%
+% Usage:  \usepackage{latex-pro}
+%         \usepackage[square,bysection]{latex-pro}
+%
+% This file only loads the modules. The commands live in one file per topic,
+% and each module can also be loaded on its own, e.g.
+% \usepackage{latex-pro-matrix}. See the README for the full list.
+%
+%   latex-pro-matrix.sty     \mat \bmat \pmat \idmat \colvec \rowvec
+%                            \genmat \symmat \diagmat, \usematb \usematp
+%   latex-pro-calculus.sty   \partialdiff \setpartialdifffunction \diff \hessian \gradient \jacobian
+%   latex-pro-code.sty       \python \py pythoncode \pseudo (listings)
+%   latex-pro-links.sty      \qr \qr* \qrsetsize (QR codes of links)
+%   latex-pro-theorems.sty   theorem environments, \proposition{label} refs,
+%                            \booksection \bookchapter \bookeq
+%   latex-pro-sets.sty       \N \Z \Q \R \set \setof \ball \dist \interior
+%                            \bd \Rx
+%   latex-pro-notation.sty   \norm \abs \inner \tp \map \defeq \argmin
+%                            \argmax \minimize \maximize
+%
+% Options (passed on to the module that uses them)
+%   square, round            bracket style of the matrix commands
+%   bysection                number theorems per section: 2.1, 2.2, ...
+%   edge=<style>             default look of a code block's edges where a
+%                            page break splits it: wave (default), zigzag,
+%                            scallop, torn, fade, dashed, scissors,
+%                            continued, straight
+%   length=x, ...            any other code block option, as a default
+%
+% Adding a module: create latex-pro-<topic>.sty and add one
+% \RequirePackage line below (keep the list in alphabetical order).
+%
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{latex-pro}[2026/11/03 v0.2 Maths shortcut commands]
+
+\DeclareOption{round}{\PassOptionsToPackage{round}{latex-pro-matrix}}
+\DeclareOption{square}{\PassOptionsToPackage{square}{latex-pro-matrix}}
+\DeclareOption{bysection}{\PassOptionsToPackage{bysection}{latex-pro-theorems}}
+% options with an = (edge=torn, length=2) are code block options
+\DeclareOption*{%
+  \expandafter\in@\expandafter=\expandafter{\CurrentOption}%
+  \ifin@
+    \PassOptionsToPackage{\CurrentOption}{latex-pro-code}%
+  \else
+    \PackageWarning{latex-pro}{Unknown option `\CurrentOption'}%
+  \fi}
+\ProcessOptions\relax
+
+% Same load order of the AMS packages as before the split.
+\RequirePackage{amsmath}
+\RequirePackage{amsthm}
+\RequirePackage{amssymb}
+\RequirePackage{mathtools}
+
+% --- modules (one per line, alphabetical) ----------------------------------
+\RequirePackage{latex-pro-calculus}
+\RequirePackage{latex-pro-code}
+\RequirePackage{latex-pro-links}
+\RequirePackage{latex-pro-matrix}
+\RequirePackage{latex-pro-notation}
+\RequirePackage{latex-pro-sets}
+\RequirePackage{latex-pro-theorems}
+
+\endinput

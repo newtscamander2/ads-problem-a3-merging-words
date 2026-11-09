@@ -1,0 +1,6 @@
+function merge(A, B) // join A and B
+    // a $\leq$ b and x $\cdot$ y in a comment
+    x $\gets$ a ${\color{latexpro@keyword}/}$ b
+    return x // done, a/b
+    /* block comment */
+end function

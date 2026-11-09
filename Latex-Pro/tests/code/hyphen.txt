@@ -1,0 +1,6 @@
+function ADD-building-to-SKYLINE(A, building)
+skyline-with-one <- {building.left, building.right}
+x <- A[n-1] - 1 + a - b // a-b in a comment
+return MERGE(A, skyline-with-one)
+end function
+y <- add-building-to-skyline(A, b)

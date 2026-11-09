@@ -1,0 +1,6 @@
+function $\mbox{\latexprohyphenname{ADD-building-to-SKYLINE}}$(A, building)
+    $\mbox{\latexprohyphenname{skyline-with-one}}$ $\gets$ {building.left, building.right}
+    x $\gets$ A[n-1] - 1 + a - b // a-b in a comment
+    return MERGE(A, $\mbox{\latexprohyphenname{skyline-with-one}}$)
+end function
+y $\gets$ $\mbox{\latexprohyphenname{add-building-to-skyline}}$(A, b)

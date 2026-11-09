@@ -1,0 +1,35 @@
+% engine: xelatex
+% Tests for the JetBrains Mono code font (latex-pro-code.sty under XeLaTeX).
+\documentclass{article}
+\usepackage{latex-pro-code}
+\usepackage{lptest}
+\begin{document}
+\makeatletter
+\ExplSyntaxOn
+\fontspec_font_if_exist:nTF { JetBrains~Mono }
+  {
+    \lptrue{JetBrains~Mono~is~the~code~font}
+      { \cs_if_eq:NNTF \latexprocodefont \latexpro@jetbrains { \iftrue } { \iffalse } }
+  }
+  {
+    \typeout{LPTEST~SKIP:~JetBrains~Mono~is~not~installed}
+    \lptrue{without~JetBrains~Mono~the~code~font~stays~ttfamily}
+      { \cs_if_eq:NNTF \latexprocodefont \latexpro@defaultcodefont { \iftrue } { \iffalse } }
+  }
+\ExplSyntaxOff
+\makeatother
+% regression: listings printed * - < > as centred / maths symbols when the
+% code font was not \ttdefault ("x**2" had its stars far below the line)
+\makeatletter
+\sbox0{\lstinline[style=latexpro-python-inline, emph={zz},
+  emphstyle={\xdef\lpttd{\ttdefault}\xdef\lpfam{\f@family}}]{zz}}
+\makeatother
+\lptrue{inside a listing the code font is ttdefault}{\ifx\lpttd\lpfam}
+\python{code/sample.py}
+\begin{pseudo}
+if A_length >= x * y then
+return m // done
+end if
+\end{pseudo}
+The procedure \method{search} compares \variable{A_{length}} with \variable{x}.
+\end{document}

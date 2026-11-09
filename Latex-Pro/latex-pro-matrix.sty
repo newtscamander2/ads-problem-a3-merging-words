@@ -1,0 +1,355 @@
+% latex-pro-matrix.sty -- matrices and vectors (part of latex-pro)
+%
+% Usage:  \usepackage{latex-pro}            (loads every module)
+%    or:  \usepackage{latex-pro-matrix}     (just this one)
+%    or:  \usepackage[square]{latex-pro-matrix}
+%
+% Commands
+%   \bmat{a & b \\ c & d}          bmatrix  [ ... ]
+%   \pmat{a & b \\ c & d}          pmatrix  ( ... )
+%   \mat{a & b \\ c & d}           matrix in the current style (default round)
+%   \usematb  \usematp             switch \mat and every matrix command to
+%                                  square / round brackets (default round);
+%                                  or \usepackage[square]{latex-pro}
+%   \idmat{n}                      identity matrix; n a number -> written
+%                                  out, otherwise general form with dots.
+%   \colvec[x]{n}  \rowvec[x]{n}   vector (x_1, ..., x_n) as column / row
+%   \colvec[x,y]  \rowvec[1, 2]    vector with exactly the listed entries,
+%                                  the row one printed as (1, 2)
+%   \genmat[a]{m}{n}               general m x n matrix with entries a_ij
+%   \symmat[a]{n}                  general symmetric matrix (a_ji below diag)
+%   \symmat{e & 0 \\ 0 & d}        symmetric matrix from all its rows ...
+%   \symmat{1 & 2 \\ 3}            ... or from just its upper triangle
+%   \symmat[e,d]{2}                diagonal matrix with e, d on the diagonal
+%   \diagmat{e, d}                 same, size taken from the list
+%
+%   For \idmat, \colvec, \rowvec, \genmat, \symmat (and \hessian, \gradient,
+%   \jacobian in latex-pro-calculus) a number writes every entry, anything
+%   else (n, m, ...) gives the dotted form.
+%
+%   The matrix builder below (\__mathsc_grid:nn, \__mathsc_or:nn, ...) is
+%   shared with latex-pro-calculus.
+%
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{latex-pro-matrix}[2026/11/03 v0.2 latex-pro: matrices and vectors]
+
+% bracket style for the built-in matrix commands: round (default) or square
+\def\latexpro@matenv{pmatrix}
+\DeclareOption{round}{\def\latexpro@matenv{pmatrix}}
+\DeclareOption{square}{\def\latexpro@matenv{bmatrix}}
+\ProcessOptions\relax
+
+\RequirePackage{amsmath}
+
+% ---------------------------------------------------------------------------
+% Matrices
+% ---------------------------------------------------------------------------
+\NewDocumentCommand\bmat{m}{\begin{bmatrix}#1\end{bmatrix}}
+\NewDocumentCommand\pmat{m}{\begin{pmatrix}#1\end{pmatrix}}
+
+% \mat{...}: matrix in the current bracket style. Every built-in matrix
+% command (\hessian, \idmat, \gradient, \jacobian, \colvec, \rowvec,
+% \genmat, \symmat, \diagmat) uses it.
+%   \usematb    square brackets from here on (or inside a group)
+%   \usematp    round brackets (the default)
+%   \usepackage[square]{latex-pro} sets square brackets for the whole file
+\NewDocumentCommand\mat{m}{\begin{\latexpro@matenv}#1\end{\latexpro@matenv}}
+\NewDocumentCommand\usematb{}{\def\latexpro@matenv{bmatrix}}
+\NewDocumentCommand\usematp{}{\def\latexpro@matenv{pmatrix}}
+
+\ExplSyntaxOn
+
+% ---------------------------------------------------------------------------
+% Matrix builder (shared by \hessian, \idmat, \gradient, \jacobian, \colvec, \genmat, \symmat)
+% ---------------------------------------------------------------------------
+\seq_new:N \l__mathsc_idx_seq
+\tl_new:N  \l__mathsc_body_tl
+\tl_new:N  \l__mathsc_row_tl
+\tl_new:N  \l__mathsc_rowsep_tl
+\tl_const:Nn \c__mathsc_dots_tl { \q__mathsc_dots }
+\tl_new:N  \l__mathsc_r_tl
+\tl_new:N  \l__mathsc_c_tl
+
+% filled in by each command: #1 = row index, #2 = column index
+\cs_new_protected:Npn \__mathsc_cell:nn #1#2 { }
+
+\cs_new_protected:Npn \__mathsc_put_cell:nn #1#2
+  {
+    \tl_set:Nn \l__mathsc_r_tl {#1}
+    \tl_set:Nn \l__mathsc_c_tl {#2}
+    \tl_if_eq:NNTF \l__mathsc_r_tl \c__mathsc_dots_tl
+      {
+        \tl_if_eq:NNTF \l__mathsc_c_tl \c__mathsc_dots_tl
+          { \tl_put_right:Nn \l__mathsc_row_tl { \ddots } }
+          { \tl_put_right:Nn \l__mathsc_row_tl { \vdots } }
+      }
+      {
+        \tl_if_eq:NNTF \l__mathsc_c_tl \c__mathsc_dots_tl
+          { \tl_put_right:Nn \l__mathsc_row_tl { \cdots } }
+          { \tl_put_right:Ne \l__mathsc_row_tl { \__mathsc_cell:nn {#1} {#2} } }
+      }
+  }
+
+% Fill seq #1 with the indices for a size #2:
+% a number -> 1, 2, ..., n;  otherwise 1, 2, dots, n.
+\cs_new_protected:Npn \__mathsc_indices:Nn #1#2
+  {
+    \regex_match:nnTF { \A \s* \d+ \s* \Z } {#2}
+      {
+        \seq_clear:N #1
+        \int_step_inline:nn {#2} { \seq_put_right:Nn #1 {##1} }
+      }
+      { \seq_set_split:Nnn #1 { , } { 1 , 2 , \q__mathsc_dots , #2 } }
+  }
+
+% Build the body of an m x n matrix into \l__mathsc_body_tl,
+% one \__mathsc_cell:nn {row} {col} per entry.
+\seq_new:N \l__mathsc_cidx_seq
+\cs_new_protected:Npn \__mathsc_grid:nn #1#2
+  {
+    \__mathsc_indices:Nn \l__mathsc_idx_seq  {#1}
+    \__mathsc_indices:Nn \l__mathsc_cidx_seq {#2}
+    \tl_clear:N \l__mathsc_body_tl
+    \seq_map_inline:Nn \l__mathsc_idx_seq
+      {
+        \tl_clear:N \l__mathsc_row_tl
+        \seq_map_inline:Nn \l__mathsc_cidx_seq
+          {
+            \tl_if_empty:NF \l__mathsc_row_tl
+              { \tl_put_right:Nn \l__mathsc_row_tl { & } }
+            \__mathsc_put_cell:nn {##1} {####1}
+          }
+        \tl_if_empty:NF \l__mathsc_body_tl
+          { \tl_put_right:NV \l__mathsc_body_tl \l__mathsc_rowsep_tl }
+        \tl_put_right:NV \l__mathsc_body_tl \l__mathsc_row_tl
+      }
+  }
+\cs_new_protected:Npn \__mathsc_square:n #1 { \__mathsc_grid:nn {#1} {#1} }
+
+% Empty option -> default:  \__mathsc_or:nn {<given>} {<default>}
+% (expandable; the result is protected from further expansion)
+\cs_new:Npn \__mathsc_or:nn #1#2
+  { \tl_if_blank:nTF {#1} { \exp_not:n {#2} } { \exp_not:n {#1} } }
+
+% ---------------------------------------------------------------------------
+% Identity matrix
+% ---------------------------------------------------------------------------
+% \idmat{n}: n a number -> written out in full, otherwise general form
+\cs_new_protected:Npn \mathsc_idmat:n #1
+  {
+    \group_begin:
+      \cs_set:Npn \__mathsc_cell:nn ##1##2
+        { \str_if_eq:nnTF {##1} {##2} { 1 } { 0 } }
+      \tl_set:Nn \l__mathsc_rowsep_tl { \\ }
+      \__mathsc_square:n {#1}
+      \exp_args:NV \mat \l__mathsc_body_tl
+    \group_end:
+  }
+\NewDocumentCommand \idmat { m } { \mathsc_idmat:n {#1} }
+
+% ---------------------------------------------------------------------------
+% Vectors, general matrices and the gradient
+% ---------------------------------------------------------------------------
+% \colvec[x]{n}: column vector (x_1, ..., x_n)
+% \colvec[x,y]  / \colvec[1, 2]: column vector with exactly those entries
+% \rowvec[x,y] gives the row vector (x, y), commas printed.
+% A list is used when the option has a comma or no size {n} follows.
+% #1 = option, #2 = size (empty: none given), #3 = column (c) / row (r)
+\cs_new_protected:Npn \mathsc_vec:nnn #1#2#3
+  {
+    \group_begin:
+      \tl_set:Nn \l__mathsc_rowsep_tl { \\ }
+      \bool_set_false:N \l__mathsc_explicit_bool
+      \tl_if_empty:nT {#2} { \bool_set_true:N \l__mathsc_explicit_bool }
+      \tl_if_in:nnT {#1} { , } { \bool_set_true:N \l__mathsc_explicit_bool }
+      \bool_if:NTF \l__mathsc_explicit_bool
+        {
+          \seq_set_from_clist:Nn \l__mathsc_items_seq {#1}
+          \tl_set:Ne \l__mathsc_body_tl
+            {
+              \str_if_eq:nnTF {#3} { c }
+                { \seq_use:Nn \l__mathsc_items_seq { \\ } }
+                { \seq_use:Nn \l__mathsc_items_seq { , ~ } }
+            }
+        }
+        {
+          \str_if_eq:nnTF {#3} { c }
+            {
+              \cs_set:Npn \__mathsc_cell:nn ##1##2 { \exp_not:n {#1} \sb {##1} }
+              \__mathsc_grid:nn {#2} { 1 }
+            }
+            {
+              \cs_set:Npn \__mathsc_cell:nn ##1##2 { \exp_not:n {#1} \sb {##2} }
+              \__mathsc_grid:nn { 1 } {#2}
+            }
+        }
+      \exp_args:NV \mat \l__mathsc_body_tl
+    \group_end:
+  }
+% the size {n} is optional: look for a following brace group
+\cs_new_protected:Npn \__mathsc_vec_peek:nn #1#2
+  {
+    \peek_catcode:NTF \c_group_begin_token
+      { \__mathsc_vec_size:nnn {#1} {#2} }
+      { \mathsc_vec:nnn {#1} { } {#2} }
+  }
+\cs_new_protected:Npn \__mathsc_vec_size:nnn #1#2#3
+  { \mathsc_vec:nnn {#1} {#3} {#2} }
+\NewDocumentCommand \colvec { O{} }
+  { \exp_args:Ne \__mathsc_vec_peek:nn { \__mathsc_or:nn {#1} { x } } { c } }
+\NewDocumentCommand \rowvec { O{} }
+  { \exp_args:Ne \__mathsc_vec_peek:nn { \__mathsc_or:nn {#1} { x } } { r } }
+
+% \genmat[a]{m}{n}: general m x n matrix with entries a_{ij}
+\NewDocumentCommand \genmat { O{} m m }
+  { \exp_args:Ne \mathsc_genmat:nnn { \__mathsc_or:nn {#1} { a } } {#2} {#3} }
+\cs_new_protected:Npn \mathsc_genmat:nnn #1#2#3
+  {
+    \group_begin:
+      \cs_set:Npn \__mathsc_cell:nn ##1##2
+        { \exp_not:n {#1} \sb { ##1 ##2 } }
+      \tl_set:Nn \l__mathsc_rowsep_tl { \\ }
+      \__mathsc_grid:nn {#2} {#3}
+      \exp_args:NV \mat \l__mathsc_body_tl
+    \group_end:
+  }
+
+% ---------------------------------------------------------------------------
+% Symmetric matrices
+% ---------------------------------------------------------------------------
+% \symmat[a]{n}            general symmetric n x n matrix: a_{ij} on and
+%                          above the diagonal, mirrored (a_{ji}) below it
+% \symmat{e & 0 \\ 0 & d}  give the whole matrix row by row ...
+% \symmat{1 & 2 & 3 \\ 4 & 5 \\ 6}
+%                          ... or only the upper triangle (diagonal included);
+%                          either way the part below the diagonal is the
+%                          mirror of the part above it, so the result is
+%                          always symmetric
+\prop_new:N \l__mathsc_pos_prop
+\prop_new:N \l__mathsc_entry_prop
+\seq_new:N  \l__mathsc_rows_seq
+\seq_new:N  \l__mathsc_items_seq
+\int_new:N  \l__mathsc_i_int
+\int_new:N  \l__mathsc_j_int
+\bool_new:N \l__mathsc_explicit_bool
+\bool_new:N \l__mathsc_full_bool
+
+% position of an index (1, 2, ..., n) in the index list, for comparing
+\cs_new:Npn \__mathsc_pos:n #1 { \prop_item:Nn \l__mathsc_pos_prop {#1} }
+
+\cs_new_protected:Npn \mathsc_symmat:nn #1#2
+  {
+    \group_begin:
+      \tl_set:Nn \l__mathsc_rowsep_tl { \\ }
+      \bool_set_false:N \l__mathsc_explicit_bool
+      \tl_if_in:nnT {#2} { & } { \bool_set_true:N \l__mathsc_explicit_bool }
+      \tl_if_in:nnT {#2} { \\ } { \bool_set_true:N \l__mathsc_explicit_bool }
+      \bool_if:NTF \l__mathsc_explicit_bool
+        {
+          % explicit entries: the full matrix, or just its upper triangle
+          \seq_set_split:Nnn \l__mathsc_rows_seq { \\ } {#2}
+          \seq_remove_all:Nn \l__mathsc_rows_seq { }
+          % full matrix given <=> last row has n entries
+          \seq_set_split:Nne \l__mathsc_items_seq { & }
+            { \seq_item:Nn \l__mathsc_rows_seq { -1 } }
+          \bool_set:Nn \l__mathsc_full_bool
+            {
+              \int_compare_p:nNn { \seq_count:N \l__mathsc_items_seq }
+                = { \seq_count:N \l__mathsc_rows_seq }
+            }
+          \prop_clear:N \l__mathsc_entry_prop
+          \int_zero:N \l__mathsc_i_int
+          \seq_map_inline:Nn \l__mathsc_rows_seq
+            {
+              \int_incr:N \l__mathsc_i_int
+              \bool_if:NTF \l__mathsc_full_bool
+                { \int_set:Nn \l__mathsc_j_int { 1 } }
+                { \int_set_eq:NN \l__mathsc_j_int \l__mathsc_i_int }
+              \seq_set_split:Nnn \l__mathsc_items_seq { & } {##1}
+              \seq_map_inline:Nn \l__mathsc_items_seq
+                {
+                  \prop_put:Nen \l__mathsc_entry_prop
+                    { \int_use:N \l__mathsc_i_int , \int_use:N \l__mathsc_j_int }
+                    {####1}
+                  \int_incr:N \l__mathsc_j_int
+                }
+            }
+          \cs_set:Npn \__mathsc_cell:nn ##1##2
+            {
+              \int_compare:nNnTF {##1} > {##2}
+                { \prop_item:Nn \l__mathsc_entry_prop { ##2 , ##1 } }
+                { \prop_item:Nn \l__mathsc_entry_prop { ##1 , ##2 } }
+            }
+          \exp_args:Ne \__mathsc_square:n { \seq_count:N \l__mathsc_rows_seq }
+        }
+        {
+          % general form a_{ij}
+          \__mathsc_indices:Nn \l__mathsc_idx_seq {#2}
+          \prop_clear:N \l__mathsc_pos_prop
+          \int_zero:N \l__mathsc_i_int
+          \seq_map_inline:Nn \l__mathsc_idx_seq
+            {
+              \int_incr:N \l__mathsc_i_int
+              \prop_put:Nne \l__mathsc_pos_prop {##1} { \int_use:N \l__mathsc_i_int }
+            }
+          \cs_set:Npn \__mathsc_cell:nn ##1##2
+            {
+              \exp_not:n {#1}
+              \int_compare:nNnTF { \__mathsc_pos:n {##1} } > { \__mathsc_pos:n {##2} }
+                { \sb { ##2 ##1 } }
+                { \sb { ##1 ##2 } }
+            }
+          \__mathsc_square:n {#2}
+        }
+      \exp_args:NV \mat \l__mathsc_body_tl
+    \group_end:
+  }
+% \symmat[e,d]{2}: a comma list in the option gives the diagonal matrix
+% with those entries (0 elsewhere). For a letter size, list the entries for
+% rows 1, 2 and n:  \symmat[d_1,d_2,d_n]{n}
+\prop_new:N \l__mathsc_diag_prop
+\cs_new_protected:Npn \mathsc_symdiag:nn #1#2
+  {
+    \group_begin:
+      \seq_set_from_clist:Nn \l__mathsc_items_seq {#1}
+      \__mathsc_indices:Nn \l__mathsc_idx_seq {#2}
+      \seq_remove_all:Nn \l__mathsc_idx_seq { \q__mathsc_dots }
+      \prop_clear:N \l__mathsc_diag_prop
+      \int_zero:N \l__mathsc_i_int
+      \seq_map_inline:Nn \l__mathsc_idx_seq
+        {
+          \int_incr:N \l__mathsc_i_int
+          \prop_put:Nne \l__mathsc_diag_prop {##1}
+            { \seq_item:Nn \l__mathsc_items_seq { \l__mathsc_i_int } }
+        }
+      \cs_set:Npn \__mathsc_cell:nn ##1##2
+        {
+          \str_if_eq:nnTF {##1} {##2}
+            { \prop_item:Nn \l__mathsc_diag_prop {##1} }
+            { 0 }
+        }
+      \tl_set:Nn \l__mathsc_rowsep_tl { \\ }
+      \__mathsc_square:n {#2}
+      \exp_args:NV \mat \l__mathsc_body_tl
+    \group_end:
+  }
+\NewDocumentCommand \symmat { O{} m }
+  { \exp_args:Ne \__mathsc_symmat_dispatch:nn { \__mathsc_or:nn {#1} { a } } {#2} }
+\cs_new_protected:Npn \__mathsc_symmat_dispatch:nn #1#2
+  {
+    \tl_if_in:nnTF {#1} { , }
+      { \mathsc_symdiag:nn {#1} {#2} }
+      { \mathsc_symmat:nn {#1} {#2} }
+  }
+
+% \diagmat{e, d, ...}: diagonal matrix with the listed entries, 0 elsewhere
+% (same as \symmat[e,d,...]{<number of entries>})
+\NewDocumentCommand \diagmat { m }
+  {
+    \seq_set_from_clist:Nn \l__mathsc_items_seq {#1}
+    \exp_args:Nne \mathsc_symdiag:nn {#1} { \seq_count:N \l__mathsc_items_seq }
+  }
+
+\ExplSyntaxOff
+
+\endinput

@@ -1,0 +1,268 @@
+% latex-pro-calculus.sty -- derivatives, Hessian, gradient, Jacobian
+% (part of latex-pro; loads latex-pro-matrix)
+%
+% Usage:  \usepackage{latex-pro}  or  \usepackage{latex-pro-calculus}
+%
+% Commands
+%   \partialdiff[f]{x,y,...}       partial derivative of f w.r.t. the listed
+%                                  variables; consecutive repeats collapse to
+%                                  powers, e.g. {x,x,y} -> d^3 f / dx^2 dy.
+%                                  Without [f] the default function is used
+%                                  (f): \partialdiff{y} -> df/dy;
+%                                  \partialdiff[]{t} is the operator d/dt
+%   \setpartialdifffunction{g}     change the default function of
+%                                  \partialdiff (follows TeX groups;
+%                                  {} makes \partialdiff{t} the operator)
+%   \diff[f]{x,...}                ordinary derivative, same rules as
+%                                  \partialdiff:  d^2 f / dx^2
+%   \hessian[x][f][v]{n}           Hessian matrix of f in n dimensions,
+%                                  variables [x] -> x_1..x_n or a list [x,y];
+%                                  evaluated at the point v (default v;
+%                                  \hessian* leaves the point out). An empty
+%                                  option keeps its default: \hessian[][g]{5}.
+%   \gradient[x][f][v]{n}          gradient row vector (df/dx_1 ... df/dx_n) at v
+%   \jacobian[x][f][v]{m}{n}       m x n derivative matrix of f = (f_1..f_m)
+%   (for all three: first option = variables, [y] or a list [x,y,z];
+%    second = function, third = point)
+%
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{latex-pro-calculus}[2026/11/03 v0.2 latex-pro: derivatives]
+
+\RequirePackage{amsmath}
+\RequirePackage{latex-pro-matrix}
+
+\ExplSyntaxOn
+
+% ---------------------------------------------------------------------------
+% Partial derivatives
+% ---------------------------------------------------------------------------
+\seq_new:N  \l__mathsc_vars_seq
+\tl_new:N   \l__mathsc_denom_tl
+\tl_new:N   \l__mathsc_prev_tl
+\tl_new:N   \l__mathsc_cur_tl
+\int_new:N  \l__mathsc_run_int
+\int_new:N  \l__mathsc_order_int
+\tl_new:N   \l__mathsc_frac_tl
+\tl_set:Nn  \l__mathsc_frac_tl { \frac }
+\tl_new:N   \l__mathsc_d_tl
+\tl_set:Nn  \l__mathsc_d_tl { \partial }
+
+% append "\partial <var>^{run}" for the current run of equal variables
+\cs_new_protected:Npn \__mathsc_flush_run:
+  {
+    \int_compare:nNnT { \l__mathsc_run_int } > { 0 }
+      {
+        \tl_put_right:Ne \l__mathsc_denom_tl
+          {
+            \exp_not:V \l__mathsc_d_tl
+            \exp_not:V \l__mathsc_prev_tl
+            \int_compare:nNnT { \l__mathsc_run_int } > { 1 }
+              { ^{ \int_use:N \l__mathsc_run_int } }
+          }
+      }
+  }
+
+% #1 = function (may be empty), #2 = comma list of variables
+\cs_new_protected:Npn \mathsc_partial:nn #1#2
+  {
+    \seq_set_from_clist:Nn \l__mathsc_vars_seq {#2}
+    \int_set:Nn \l__mathsc_order_int { \seq_count:N \l__mathsc_vars_seq }
+    \tl_clear:N \l__mathsc_denom_tl
+    \tl_clear:N \l__mathsc_prev_tl
+    \int_zero:N \l__mathsc_run_int
+    \seq_map_inline:Nn \l__mathsc_vars_seq
+      {
+        \tl_set:Nn \l__mathsc_cur_tl {##1}
+        \tl_if_eq:NNTF \l__mathsc_cur_tl \l__mathsc_prev_tl
+          { \int_incr:N \l__mathsc_run_int }
+          {
+            \__mathsc_flush_run:
+            \tl_set_eq:NN \l__mathsc_prev_tl \l__mathsc_cur_tl
+            \int_set:Nn \l__mathsc_run_int { 1 }
+          }
+      }
+    \__mathsc_flush_run:
+    \use:e
+      {
+        \exp_not:V \l__mathsc_frac_tl
+          {
+            \exp_not:V \l__mathsc_d_tl
+            \int_compare:nNnT { \l__mathsc_order_int } > { 1 }
+              { ^{ \int_use:N \l__mathsc_order_int } }
+            \exp_not:n {#1}
+          }
+          { \exp_not:V \l__mathsc_denom_tl }
+      }
+  }
+
+% default function of \partialdiff when no [function] is given
+\tl_new:N  \l__mathsc_pdfun_tl
+\tl_set:Nn \l__mathsc_pdfun_tl { f }
+
+% \partialdiff{y} -> df/dy (default function), \partialdiff[g]{y} -> dg/dy,
+% \partialdiff[]{y} -> d/dy (operator, no function)
+\NewDocumentCommand \partialdiff { o m }
+  {
+    \IfNoValueTF {#1}
+      { \exp_args:NV \mathsc_partial:nn \l__mathsc_pdfun_tl {#2} }
+      { \mathsc_partial:nn {#1} {#2} }
+  }
+
+% \setpartialdifffunction{g}: \partialdiff{y} now gives dg/dy
+\NewDocumentCommand \setpartialdifffunction { m }
+  { \tl_set:Nn \l__mathsc_pdfun_tl {#1} }
+
+% \diff[f]{x,x}: same as \partialdiff but with an upright d (ordinary
+% derivative), e.g. d^2 f / dx^2
+\NewDocumentCommand \diff { O{} m }
+  {
+    \group_begin:
+      \tl_set:Nn \l__mathsc_d_tl { \mathrm { d } }
+      \mathsc_partial:nn {#1} {#2}
+    \group_end:
+  }
+
+% ---------------------------------------------------------------------------
+% Hessian
+% ---------------------------------------------------------------------------
+% Variables for \hessian, \gradient and \jacobian
+%   [x]      indexed: x_1, x_2, ..., x_n  (the size comes from {n})
+%   [x,y,z]  exactly these variables      (the size is the length of the list)
+% Fills \l__mathsc_var_prop (index -> variable) and \l__mathsc_size_tl.
+\prop_new:N \l__mathsc_var_prop
+\tl_new:N   \l__mathsc_size_tl
+\seq_new:N  \l__mathsc_vlist_seq
+\int_new:N  \l__mathsc_vi_int
+\cs_new_protected:Npn \__mathsc_vars:nn #1#2
+  {
+    \prop_clear:N \l__mathsc_var_prop
+    \tl_if_in:nnTF {#1} { , }
+      {
+        \seq_set_from_clist:Nn \l__mathsc_vlist_seq {#1}
+        \tl_set:Ne \l__mathsc_size_tl { \seq_count:N \l__mathsc_vlist_seq }
+        \int_zero:N \l__mathsc_vi_int
+        \seq_map_inline:Nn \l__mathsc_vlist_seq
+          {
+            \int_incr:N \l__mathsc_vi_int
+            \prop_put:Nen \l__mathsc_var_prop
+              { \int_use:N \l__mathsc_vi_int } {##1}
+          }
+      }
+      {
+        \tl_set:Nn \l__mathsc_size_tl {#2}
+        \__mathsc_indices:Nn \l__mathsc_vlist_seq {#2}
+        \seq_map_inline:Nn \l__mathsc_vlist_seq
+          { \prop_put:Nnn \l__mathsc_var_prop {##1} { #1 \sb {##1} } }
+      }
+  }
+\cs_new:Npn \__mathsc_var:n #1 { \prop_item:Nn \l__mathsc_var_prop {#1} }
+
+% #1 = variables, #2 = function (with point), #3 = dimension
+\cs_new_protected:Npn \mathsc_hessian:nnn #1#2#3
+  {
+    \group_begin:
+      \__mathsc_vars:nn {#1} {#3}
+      \cs_set:Npn \__mathsc_cell:nn ##1##2
+        {
+          \exp_not:n { \partialdiff [#2] }
+            { \__mathsc_var:n {##1} , \__mathsc_var:n {##2} }
+        }
+      \tl_set:Nn \l__mathsc_rowsep_tl
+        { \\ \noalign { \skip_vertical:n { 1ex } } }
+      \exp_args:NV \__mathsc_square:n \l__mathsc_size_tl
+      \tl_set:Nn \l__mathsc_frac_tl { \dfrac }
+      \exp_args:NV \mat \l__mathsc_body_tl
+    \group_end:
+  }
+
+% \hessian[x][f][v]{n}
+%   1st option = variables: [y] -> y_1..y_n, [x,y] -> x and y (default x)
+%   2nd option = function (default f)
+%   3rd option = point (default v)
+%   An empty option keeps its default: \hessian[][g]{5}.
+%   \hessian* leaves the point out.
+\NewDocumentCommand \hessian { s O{} O{} O{} m }
+  {
+    \use:e
+      {
+        \exp_not:N \mathsc_hessian:nnn
+          { \__mathsc_or:nn {#2} { x } }
+          {
+            \__mathsc_or:nn {#3} { f }
+            \IfBooleanF {#1} { ( \__mathsc_or:nn {#4} { v } ) }
+          }
+          { \exp_not:n {#5} }
+      }
+  }
+
+% ---------------------------------------------------------------------------
+% Gradient and derivative matrix
+% ---------------------------------------------------------------------------
+% \gradient[x][f][v]{n}: row vector of partial derivatives at v, in round
+% brackets (current matrix style), as the IMO26 notes write the gradient (it is the 1 x n
+% derivative f'(v))
+% #1 = variables, #2 = function (with point), #3 = dimension
+\cs_new_protected:Npn \mathsc_gradient:nnn #1#2#3
+  {
+    \group_begin:
+      \__mathsc_vars:nn {#1} {#3}
+      \cs_set:Npn \__mathsc_cell:nn ##1##2
+        { \exp_not:n { \partialdiff [#2] } { \__mathsc_var:n {##2} } }
+      \tl_set:Nn \l__mathsc_rowsep_tl { \\ }
+      \exp_args:Nne \__mathsc_grid:nn { 1 } { \l__mathsc_size_tl }
+      \tl_set:Nn \l__mathsc_frac_tl { \dfrac }
+      \exp_args:NV \mat \l__mathsc_body_tl
+    \group_end:
+  }
+% \gradient[x][f][v]{n}: options as for \hessian (empty = default,
+% \gradient* leaves the point out)
+\NewDocumentCommand \gradient { s O{} O{} O{} m }
+  {
+    \use:e
+      {
+        \exp_not:N \mathsc_gradient:nnn
+          { \__mathsc_or:nn {#2} { x } }
+          {
+            \__mathsc_or:nn {#3} { f }
+            \IfBooleanF {#1} { ( \__mathsc_or:nn {#4} { v } ) }
+          }
+          { \exp_not:n {#5} }
+      }
+  }
+
+% \jacobian[x][f][v]{m}{n}: the m x n derivative matrix f'(v) of
+% f = (f_1, ..., f_m), entries d f_i(v) / d x_j. Options as for \hessian;
+% with a list [x,y,z] the number of columns is the length of the list.
+% #1 = variables, #2 = function, #3 = "(point)" or empty, #4 = m, #5 = n
+\cs_new_protected:Npn \mathsc_jacobian:nnnnn #1#2#3#4#5
+  {
+    \group_begin:
+      \__mathsc_vars:nn {#1} {#5}
+      \cs_set:Npn \__mathsc_cell:nn ##1##2
+        {
+          \exp_not:n { \partialdiff } [ \exp_not:n {#2} \sb {##1} \exp_not:n {#3} ]
+            { \__mathsc_var:n {##2} }
+        }
+      \tl_set:Nn \l__mathsc_rowsep_tl
+        { \\ \noalign { \skip_vertical:n { 1ex } } }
+      \exp_args:Nne \__mathsc_grid:nn {#4} { \l__mathsc_size_tl }
+      \tl_set:Nn \l__mathsc_frac_tl { \dfrac }
+      \exp_args:NV \mat \l__mathsc_body_tl
+    \group_end:
+  }
+% options as for \hessian (empty = default, \jacobian* leaves the point out)
+\NewDocumentCommand \jacobian { s O{} O{} O{} m m }
+  {
+    \use:e
+      {
+        \exp_not:N \mathsc_jacobian:nnnnn
+          { \__mathsc_or:nn {#2} { x } }
+          { \__mathsc_or:nn {#3} { f } }
+          { \IfBooleanF {#1} { ( \__mathsc_or:nn {#4} { v } ) } }
+          { \exp_not:n {#5} } { \exp_not:n {#6} }
+      }
+  }
+
+\ExplSyntaxOff
+
+\endinput

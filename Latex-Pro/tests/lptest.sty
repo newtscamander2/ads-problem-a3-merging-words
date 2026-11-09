@@ -1,0 +1,115 @@
+% lptest.sty -- tiny test harness for the latex-pro test suite (tests/*.tex)
+%
+%   \lpsame{name}{<maths A>}{<maths B>}
+%       A and B (typeset in display style) must give boxes of the same
+%       width, height and depth, e.g. \lpsame{empty option}{\hessian[][g]{2}}
+%       {\hessian[x][g][v]{2}}.
+%   \lpsametext{name}{<text A>}{<text B>}   the same in text mode
+%   \lpdefined{name}{\cs}                   \cs must be defined
+%   \lpref{name}{label}{expected}           \ref{label} must be "expected"
+%                                           (checked once the .aux exists)
+%   \lptrue{name}{<condition>}              e.g. \lptrue{x}{\ifdim\wd0>0pt}
+%   \lpsamefile{name}{file A}{file B}       the two text files must have the
+%                                           same lines (trailing spaces ignored)
+%
+% A failing check writes "LPTEST FAIL: <name>" to the log (and a warning
+% with the number of failures at \end{document}). The run itself goes on,
+% so latexmk can rerun until the references settle; tests/run.sh compiles
+% every test file and fails on any LPTEST FAIL in the final log.
+%
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{lptest}[2026/11/03 latex-pro test harness]
+
+\newcount\lp@pass
+\newcount\lp@fail
+\newsavebox\lp@boxa
+\newsavebox\lp@boxb
+
+\newcommand\lp@ok[1]{\global\advance\lp@pass\@ne
+  \typeout{LPTEST PASS: #1}}
+\newcommand\lp@bad[2]{\global\advance\lp@fail\@ne
+  \typeout{LPTEST FAIL: #1 (#2)}}
+
+\newcommand\lp@compare[1]{%
+  \ifdim\wd\lp@boxa=\wd\lp@boxb
+    \ifdim\ht\lp@boxa=\ht\lp@boxb
+      \ifdim\dp\lp@boxa=\dp\lp@boxb
+        \lp@ok{#1}%
+      \else \lp@bad{#1}{depth \the\dp\lp@boxa\space vs \the\dp\lp@boxb}\fi
+    \else \lp@bad{#1}{height \the\ht\lp@boxa\space vs \the\ht\lp@boxb}\fi
+  \else \lp@bad{#1}{width \the\wd\lp@boxa\space vs \the\wd\lp@boxb}\fi}
+
+\newcommand\lpsame[3]{%
+  \sbox\lp@boxa{$\displaystyle #2$}%
+  \sbox\lp@boxb{$\displaystyle #3$}%
+  \lp@compare{#1}%
+  \par\noindent\fbox{\usebox\lp@boxa}\quad\fbox{\usebox\lp@boxb}\quad
+  {\small\ttfamily\detokenize{#1}}\par}
+
+\newcommand\lpsametext[3]{%
+  \sbox\lp@boxa{#2}%
+  \sbox\lp@boxb{#3}%
+  \lp@compare{#1}%
+  \par\noindent\fbox{\usebox\lp@boxa}\quad\fbox{\usebox\lp@boxb}\quad
+  {\small\ttfamily\detokenize{#1}}\par}
+
+\newcommand\lpdefined[2]{%
+  \ifdefined#2\lp@ok{#1}\else\lp@bad{#1}{\string#2 undefined}\fi}
+
+\newcommand\lptrue[2]{#2\lp@ok{#1}\else\lp@bad{#1}{condition false}\fi}
+
+% The first run has no .aux yet: skip, latexmk reruns. tests/run.sh fails
+% on any undefined reference left in the final log.
+\newcommand\lpref[3]{%
+  \@ifundefined{r@#2}{\typeout{LPTEST SKIP: #1 (label #2 not yet known)}}{%
+    \edef\lp@got{\expandafter\expandafter\expandafter
+      \@car\csname r@#2\endcsname\@nil}%
+    \edef\lp@want{#3}%
+    \ifx\lp@got\lp@want\lp@ok{#1}\else\lp@bad{#1}{got \lp@got}\fi}}
+
+\ExplSyntaxOn
+\ior_new:N \g__lp_a_ior
+\ior_new:N \g__lp_b_ior
+\seq_new:N \l__lp_a_seq
+\seq_new:N \l__lp_b_seq
+\str_new:N \l__lp_line_str
+\cs_new_protected:Npn \__lp_read:NNn #1#2#3
+  {
+    \seq_clear:N #2
+    \ior_open:Nn #1 {#3}
+    \ior_str_map_inline:Nn #1
+      {
+        \str_set:Nn \l__lp_line_str {##1}
+        \regex_replace_once:nnN { \s+ \Z } { } \l__lp_line_str
+        \seq_put_right:NV #2 \l__lp_line_str
+      }
+    \ior_close:N #1
+    % ignore empty lines at the end
+    \bool_until_do:nn
+      { \seq_if_empty_p:N #2 || ! \tl_if_empty_p:e { \seq_item:Nn #2 { -1 } } }
+      { \seq_pop_right:NN #2 \l_tmpa_tl }
+  }
+\NewDocumentCommand \lpsamefile { m m m }
+  {
+    \__lp_read:NNn \g__lp_a_ior \l__lp_a_seq {#2}
+    \__lp_read:NNn \g__lp_b_ior \l__lp_b_seq {#3}
+    \str_if_eq:eeTF
+      { \seq_use:Nn \l__lp_a_seq { \exp_not:N \lpLINE } }
+      { \seq_use:Nn \l__lp_b_seq { \exp_not:N \lpLINE } }
+      { \lp@ok {#1} }
+      {
+        \lp@bad {#1} { files~differ }
+        \typeout { --- ~ got: } \seq_map_inline:Nn \l__lp_a_seq { \typeout { | ##1 } }
+        \typeout { --- ~ expected: } \seq_map_inline:Nn \l__lp_b_seq { \typeout { | ##1 } }
+      }
+  }
+\ExplSyntaxOff
+
+\AtEndDocument{%
+  \typeout{LPTEST SUMMARY: \the\lp@pass\space passed, \the\lp@fail\space failed}%
+  \ifnum\lp@fail>\z@
+    \PackageWarningNoLine{lptest}{\the\lp@fail\space check(s) failed,
+      search the log for LPTEST FAIL}%
+  \fi}
+
+\endinput

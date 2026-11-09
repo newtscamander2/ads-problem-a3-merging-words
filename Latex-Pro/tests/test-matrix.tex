@@ -1,0 +1,51 @@
+% Tests for latex-pro-matrix.sty, loaded on its own.
+\documentclass{article}
+\usepackage{latex-pro-matrix}
+\usepackage{lptest}
+\begin{document}
+\lpsame{mat is round by default}{\mat{a & b \\ c & d}}{\pmat{a & b \\ c & d}}
+\lpsame{bmat}{\bmat{a & b \\ c & d}}{\begin{bmatrix} a & b \\ c & d \end{bmatrix}}
+\lpsame{usematb switches to square}{\usematb\mat{a}}{\bmat{a}}
+{\usematb}\lpsame{usematb in a group stays local}{\mat{a}}{\pmat{a}}
+\lpsame{usematp switches back}{\usematb\usematp\mat{a}}{\pmat{a}}
+\lpsame{usematb reaches every matrix command}{\usematb\idmat{2}}{\bmat{1 & 0 \\ 0 & 1}}
+
+\lpsame{idmat number}{\idmat{3}}{\mat{1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1}}
+\lpsame{idmat general}{\idmat{n}}
+  {\mat{1 & 0 & \cdots & 0 \\ 0 & 1 & \cdots & 0 \\ \vdots & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & 1}}
+
+\lpsame{colvec default}{\colvec{3}}{\mat{x_1 \\ x_2 \\ x_3}}
+\lpsame{colvec letter}{\colvec[v]{2}}{\mat{v_1 \\ v_2}}
+\lpsame{colvec general}{\colvec{n}}{\mat{x_1 \\ x_2 \\ \vdots \\ x_n}}
+\lpsame{rowvec indexed}{\rowvec[w]{3}}{\mat{w_1 & w_2 & w_3}}
+% regression: list entries, commas printed between row entries
+\lpsame{rowvec list prints commas}{\rowvec[x,y]}{\mat{x, y}}
+\lpsame{rowvec list with spaces}{\rowvec[1, 2]}{\mat{1, 2}}
+\lpsame{colvec list}{\colvec[x, y, z]}{\mat{x \\ y \\ z}}
+\lpsame{rowvec single symbol, no size}{\rowvec[a]}{\mat{a}}
+% regression: an empty option keeps the default
+\lpsame{colvec empty option}{\colvec[]{2}}{\colvec[x]{2}}
+\lpsame{rowvec empty option}{\rowvec[]{2}}{\rowvec[x]{2}}
+\lpsame{genmat empty option}{\genmat[]{2}{2}}{\genmat[a]{2}{2}}
+\lpsame{symmat empty option}{\symmat[]{2}}{\symmat[a]{2}}
+
+\lpsame{genmat}{\genmat[b]{2}{3}}{\mat{b_{11} & b_{12} & b_{13} \\ b_{21} & b_{22} & b_{23}}}
+\lpsame{symmat general}{\symmat{3}}
+  {\mat{a_{11} & a_{12} & a_{13} \\ a_{12} & a_{22} & a_{23} \\ a_{13} & a_{23} & a_{33}}}
+\lpsame{symmat upper triangle}{\symmat{1 & 2 & 3 \\ 4 & 5 \\ 6}}
+  {\mat{1 & 2 & 3 \\ 2 & 4 & 5 \\ 3 & 5 & 6}}
+\lpsame{symmat full rows}{\symmat{e & 0 \\ 0 & d}}{\mat{e & 0 \\ 0 & d}}
+\lpsame{symmat full rows mirror upper part}{\symmat{1 & 2 \\ 9 & 3}}{\mat{1 & 2 \\ 2 & 3}}
+\lpsame{symmat diagonal}{\symmat[e,d]{2}}{\mat{e & 0 \\ 0 & d}}
+\lpsame{diagmat}{\diagmat{e, d}}{\symmat[e,d]{2}}
+\lpsame{diagmat three}{\diagmat{\lambda_1, \lambda_2, \lambda_3}}
+  {\mat{\lambda_1 & 0 & 0 \\ 0 & \lambda_2 & 0 \\ 0 & 0 & \lambda_3}}
+
+% regression: a label after a matrix command must stay a label
+\begin{equation}\symmat[e,d]{2}\label{eq:sym}\end{equation}
+\begin{equation}\rowvec[x,y]\label{eq:row}\end{equation}
+\begin{equation}\diagmat{e,d}\label{eq:diag}\end{equation}
+\lpref{label after symmat}{eq:sym}{1}
+\lpref{label after rowvec list}{eq:row}{2}
+\lpref{label after diagmat}{eq:diag}{3}
+\end{document}

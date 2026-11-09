@@ -1,0 +1,8 @@
+function search(A, x)
+    for i $\gets$ 1 to n do
+        if $\latexprocodemath{A}_{\latexprocodemath{i}}$ = x then
+            return i
+        end if
+    end for
+    return 0
+end function

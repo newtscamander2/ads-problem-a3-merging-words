@@ -1,0 +1,72 @@
+% Tests for latex-pro-calculus.sty, loaded on its own.
+\documentclass{article}
+\usepackage{latex-pro-calculus}
+\usepackage{lptest}
+\begin{document}
+\lpsame{partialdiff first order}{\partialdiff[f]{x}}{\frac{\partial f}{\partial x}}
+\lpsame{partialdiff mixed}{\partialdiff[f]{x,y}}{\frac{\partial^{2} f}{\partial x\partial y}}
+\lpsame{partialdiff repeats collapse}{\partialdiff[f]{x,x,y}}
+  {\frac{\partial^{3} f}{\partial x^{2}\partial y}}
+\lpsame{partialdiff keeps written order}{\partialdiff[f]{x,y,x}}
+  {\frac{\partial^{3} f}{\partial x\partial y\partial x}}
+\lpsame{partialdiff operator}{\partialdiff[]{t}}{\frac{\partial}{\partial t}}
+% \partialdiff without [function] uses the default function f
+\lpsame{partialdiff default function}{\partialdiff{y}}{\frac{\partial f}{\partial y}}
+\lpsame{partialdiff default same as [f]}{\partialdiff{x,x,y}}{\partialdiff[f]{x,x,y}}
+\lpsame{partialdiff explicit function wins}{\partialdiff[g]{y}}{\frac{\partial g}{\partial y}}
+\setpartialdifffunction{g}
+\lpsame{setpartialdifffunction}{\partialdiff{y}}{\frac{\partial g}{\partial y}}
+\lpsame{setpartialdifffunction higher order}{\partialdiff{x,y}}
+  {\frac{\partial^{2} g}{\partial x\partial y}}
+\lpsame{setpartialdifffunction explicit wins}{\partialdiff[h]{y}}{\frac{\partial h}{\partial y}}
+\lpsame{setpartialdifffunction empty bracket still operator}{\partialdiff[]{y}}
+  {\frac{\partial}{\partial y}}
+\lpsame{setpartialdifffunction does not change hessian}{\hessian*{1}}
+  {\mat{\dfrac{\partial^{2} f}{\partial x_1^{2}}}}
+\setpartialdifffunction{u(x,y)}
+\lpsame{setpartialdifffunction with arguments}{\partialdiff{x}}
+  {\frac{\partial u(x,y)}{\partial x}}
+{\setpartialdifffunction{h}}
+\lpsame{setpartialdifffunction is local to a group}{\partialdiff{x}}
+  {\frac{\partial u(x,y)}{\partial x}}
+\setpartialdifffunction{}
+\lpsame{setpartialdifffunction empty gives operator}{\partialdiff{t}}
+  {\frac{\partial}{\partial t}}
+\setpartialdifffunction{f}
+\lpsame{diff upright d}{\diff[f]{x,x}}{\frac{\mathrm{d}^{2} f}{\mathrm{d} x^{2}}}
+\lpsame{diff does not leak into partialdiff}{\diff{x}\partialdiff[]{x}}
+  {\frac{\mathrm{d}}{\mathrm{d} x}\frac{\partial}{\partial x}}
+\lpsame{diff keeps no default function}{\diff{x}}{\frac{\mathrm{d}}{\mathrm{d} x}}
+
+
+\lpsame{hessian 2}{\hessian{2}}
+  {\mat{\dfrac{\partial^{2} f(v)}{\partial x_1^{2}} & \dfrac{\partial^{2} f(v)}{\partial x_1\partial x_2} \\
+        \noalign{\vskip 1ex}
+        \dfrac{\partial^{2} f(v)}{\partial x_2\partial x_1} & \dfrac{\partial^{2} f(v)}{\partial x_2^{2}}}}
+% regression: empty options keep their defaults
+\lpsame{hessian empty first option}{\hessian[][g]{5}}{\hessian[x][g][v]{5}}
+\lpsame{hessian empty first two options}{\hessian[][][\mathbf a]{2}}{\hessian[x][f][\mathbf a]{2}}
+\lpsame{hessian all options empty}{\hessian[][][]{3}}{\hessian{3}}
+\lpsame{hessian star drops the point}{\hessian*{2}}
+  {\mat{\dfrac{\partial^{2} f}{\partial x_1^{2}} & \dfrac{\partial^{2} f}{\partial x_1\partial x_2} \\
+        \noalign{\vskip 1ex}
+        \dfrac{\partial^{2} f}{\partial x_2\partial x_1} & \dfrac{\partial^{2} f}{\partial x_2^{2}}}}
+\lpsame{hessian variable list}{\hessian[x,y]{}}
+  {\mat{\dfrac{\partial^{2} f(v)}{\partial x^{2}} & \dfrac{\partial^{2} f(v)}{\partial x\partial y} \\
+        \noalign{\vskip 1ex}
+        \dfrac{\partial^{2} f(v)}{\partial y\partial x} & \dfrac{\partial^{2} f(v)}{\partial y^{2}}}}
+\lpsame{hessian list ignores size}{\hessian[x,y]{2}}{\hessian[x,y]{}}
+
+\lpsame{gradient}{\gradient{2}}
+  {\mat{\dfrac{\partial f(v)}{\partial x_1} & \dfrac{\partial f(v)}{\partial x_2}}}
+\lpsame{gradient empty option}{\gradient[][h]{2}}{\gradient[x][h][v]{2}}
+\lpsame{gradient list}{\gradient*[x,y]{}}
+  {\mat{\dfrac{\partial f}{\partial x} & \dfrac{\partial f}{\partial y}}}
+\lpsame{jacobian}{\jacobian*{2}{1}}
+  {\mat{\dfrac{\partial f_1}{\partial x_1} \\ \noalign{\vskip 1ex} \dfrac{\partial f_2}{\partial x_1}}}
+\lpsame{jacobian empty option}{\jacobian[][g]{2}{2}}{\jacobian[x][g][v]{2}{2}}
+\lpsame{calculus follows bracket style}{\usematb\gradient*{1}}{\bmat{\dfrac{\partial f}{\partial x_1}}}
+
+\begin{equation}\hessian[][g]{2}\label{eq:h}\end{equation}
+\lpref{label after hessian}{eq:h}{1}
+\end{document}

@@ -1,0 +1,52 @@
+% Tests for latex-pro-links.sty (with hyperref, the usual setup).
+\documentclass{article}
+\usepackage{latex-pro-links}
+\usepackage{hyperref}
+\usepackage{lptest}
+% \lpqris{name}|expected link| : the link the last \qr encoded must be
+% exactly this text. The expected text is read verbatim, so % and # are
+% written as they are.
+\ExplSyntaxOn
+\NewDocumentCommand \lpqris { m v }
+  {
+    \str_if_eq:VnTF \g__lp_qr_last_str {#2}
+      { \lptrue {#1} { \iftrue } }
+      { \lptrue {#1~(got~\g__lp_qr_last_str)} { \iffalse } }
+  }
+\ExplSyntaxOff
+\begin{document}
+\qr{https://example.com}
+\lpqris{plain link}|https://example.com|
+
+\qr{https://example.com/a_b?x=1&y=%20z#top}
+\lpqris{pasted percent, hash, underscore, ampersand}|https://example.com/a_b?x=1&y=%20z#top|
+
+\qr{https://example.com/~user/$x^2$}
+\lpqris{pasted tilde, dollar, caret}|https://example.com/~user/$x^2$|
+
+\fbox{\qr{https://example.com/a\_b?y=\%20z\#top}}
+\lpqris{inside another command, escaped}|https://example.com/a_b?y=%20z#top|
+
+\footnote{\qr{https://example.com/f\#n}}
+\lpqris{inside a footnote}|https://example.com/f#n|
+
+\begin{tabular}{c}\qr{https://example.com/t\&x=1}\end{tabular}
+\lpqris{inside a table cell, ampersand escaped}|https://example.com/t&x=1|
+
+\qr{https://example.com/
+  long/path}
+\lpqris{line break in the link is dropped}|https://example.com/long/path|
+
+\qr*{https://example.com/s_t#u}
+\lpqris{starred form}|https://example.com/s_t#u|
+
+\lpsametext{default size is 2cm}{\qr{https://a.b}}{\qrcode[height=2cm]{https://a.b}}
+\lpsametext{size option}{\qr[3cm]{https://a.b}}{\qrcode[height=3cm]{https://a.b}}
+\lpsametext{size option does not stick}{\qr{https://a.b}}{\qrcode[height=2cm]{https://a.b}}
+\qrsetsize{1cm}
+\lpsametext{qrsetsize}{\qr{https://a.b}}{\qrcode[height=1cm]{https://a.b}}
+\qrsetsize{2cm}
+
+\sbox0{\qr{https://a.b}}\sbox2{\qr*{https://a.b}}
+\lptrue{starred form is taller (link printed beneath)}{\ifdim\dimexpr\ht2+\dp2\relax>\dimexpr\ht0+\dp0+5pt\relax}
+\end{document}

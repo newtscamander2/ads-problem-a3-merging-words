@@ -1,0 +1,20 @@
+% latex-pro-code on its own takes the code block options as package
+% options: \usepackage[edge=torn, length=2]{latex-pro-code}
+\documentclass{article}
+\usepackage[edge=torn,length=2]{latex-pro-code}
+\usepackage{lptest}
+\begin{document}
+\ExplSyntaxOn
+\__latexpro_code_opts:n { }
+\lptrue{package~option~edge~sets~the~default}
+  { \str_if_eq:eeTF { \use:c { latexpro@edgestyle } } { torn } { \iftrue } { \iffalse } }
+\lptrue{package~option~length~sets~the~default}
+  { \str_if_eq:eeTF { \use:c { latexpro@wavefactor } } { 2 } { \iftrue } { \iffalse } }
+\__latexpro_code_opts:n { edge = continued }
+\lptrue{box~option~wins~over~the~package~option}
+  { \str_if_eq:eeTF { \use:c { latexpro@edgestyle } } { continued } { \iftrue } { \iffalse } }
+\ExplSyntaxOff
+% a split box with the package default compiles
+\noindent\rule{1pt}{\dimexpr\textheight-6\baselineskip}\par
+\python[span]{code/sample.py}
+\end{document}

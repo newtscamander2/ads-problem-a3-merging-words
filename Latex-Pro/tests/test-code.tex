@@ -1,0 +1,594 @@
+% Tests for latex-pro-code.sty, loaded on its own.
+\documentclass{article}
+\usepackage{latex-pro-code}
+% regression: xcolor with options loaded after the package gives no clash
+\usepackage[dvipsnames]{xcolor}
+% regression: tcolorbox loaded after the package (it is only loaded at
+% \begin{document} when missing)
+\usepackage{tcolorbox}
+\usepackage{lptest}
+\makeatletter
+\newcommand\pseudotmp{\jobname-pseudo.tmp}
+\makeatother
+\begin{document}
+\lpdefined{python}{\python}
+\lpdefined{py}{\py}
+\lpdefined{pseudo}{\pseudo}
+\lpdefined{endpseudo}{\endpseudo}
+\python{code/sample.py}
+\python*[firstline=1, lastline=2, caption={Part of a file}]{code/sample.py}
+Inline \py{x -= f(x) / df(x)} and \py|a = {1: 2}|.
+\begin{pythoncode}[caption=Typed in]
+print("æøå")  # non-ASCII letters work with pdflatex
+\end{pythoncode}
+
+% \pseudo re-indents the file and turns operators into maths
+\pseudo{code/indent.txt}
+\lpsamefile{pseudo indents by keywords}{\pseudotmp}{code/indent-expected.txt}
+\pseudoindentfalse
+\pseudo*{code/indent.txt}
+\lpsamefile{pseudoindentfalse keeps the indentation}{\pseudotmp}{code/indent-flat-expected.txt}
+\pseudoindenttrue
+
+% pseudocode typed in the .tex file goes through the same steps as \pseudo
+\begin{pseudo}[caption=Typed in]
+function search(A, x)
+for i <- 1 to n do
+if A_i = x then
+return i
+end if
+end for
+return 0
+end function
+\end{pseudo}
+\lpsamefile{pseudo environment indents like the pseudo command}{\pseudotmp}{code/env-expected.txt}
+% regression: the box was typeset while the verbatim catcodes were still
+% active, so mathescape printed "\gets" instead of the arrow
+\begingroup
+\tcbset{latexpro-code/.append style={before upper=\xdef\lpcatbackslash{\the\catcode`\\}}}
+\begin{pseudo}
+x <- 1
+\end{pseudo}
+\endgroup
+\lptrue{pseudo environment is typeset with normal catcodes}{\ifnum\lpcatbackslash=0 }
+\begin{pseudo*}
+if x then
+y
+end if
+\end{pseudo*}
+\lpsamefile{pseudo* environment}{\pseudotmp}{code/env-star-expected.txt}
+% subscripts in pseudocode keep the code font: A_length, a_{n+1}
+\begin{pseudo*}
+x <- A_length + a_{n+1}
+\end{pseudo*}
+\lpsamefile{pseudo subscripts keep the code font}{\pseudotmp}{code/subscript-expected.txt}
+\begin{pseudocode}
+if x then
+y
+end if
+\end{pseudocode}
+\lpsamefile{pseudocode is the same environment}{\pseudotmp}{code/env-star-expected.txt}
+
+% function names are set in small caps (\textsc) in a font that has them
+\lpdefined{latexprofunctionfont}{\latexprofunctionfont}
+\makeatletter
+{\latexprocodefont\latexprofunctionfont
+ \xdef\lpfnshape{\f@shape}%
+ \xdef\lpfnfont{\expandafter\ifx\csname\f@encoding/\f@family/\f@series/\f@shape\endcsname\relax 0\else 1\fi}}
+\makeatother
+\lptrue{function names use the small-caps shape}{\ifnum\pdfstrcmp{\lpfnshape}{sc}=0 }
+\lptrue{the code font has a small-caps shape}{\ifnum\lpfnfont=1 }
+\makeatletter
+\long\def\lpidentexpected{\iflatexpro@fn\global\latexpro@fnfalse\latexpro@functionstyle\fi}
+\lptrue{name after def/function uses the function style}{\ifx\latexpro@ident\lpidentexpected}
+\makeatother
+
+% \variable{name}: a variable in running text, as in a pseudocode block
+\lpdefined{variable}{\variable}
+Text with \variable{lo}, \variable{A_i} and \variable{a_{n+1}^2}.
+\lpsametext{variable is in the code font and text colour}
+  {\variable{lo}}{{\latexprocodefont\color{latexpro@text}lo}}
+% a subscript is set as maths, but letters and digits keep the code font
+% (reported: A_length came out in maths italic)
+\lpsametext{variable with a subscript keeps the code font}
+  {\variable{A_i}}{$\latexprocodemath{A}_{\latexprocodemath{i}}$}
+\lpsametext{variable with a word as subscript keeps the code font}
+  {\variable{A_{length}}}{$\latexprocodemath{A}_{\latexprocodemath{length}}$}
+\lptrue{variable subscript is not maths italic}
+  {\sbox0{\variable{A_{length}}}\sbox2{$A_{length}$}\ifnum\numexpr\ifdim\wd0=\wd2 0\else 1\fi\relax=1 }
+\lpsametext{variable with braces and superscript}
+  {\variable{a_{n+1}^2}}{$\latexprocodemath{a}_{\latexprocodemath{n}+\latexprocodemath{1}}^{\latexprocodemath{2}}$}
+\lptrue{variable is not in small caps (unlike method)}
+  {\sbox0{\variable{merge}}\sbox2{\method{merge}}\ifdim\ht0<\ht2 }
+
+% \method{name}: a function name in running text, styled as in the code
+\lpdefined{method}{\method}
+Text with \method{merge} in it.
+\makeatletter
+\lpsametext{method looks like a function name in code}
+  {\method{merge}}{{\latexprocodefont\color{latexpro@function}\scshape merge}}
+\makeatother
+\lptrue{method uses small caps (taller than tt lowercase)}
+  {\sbox0{\method{merge}}\sbox2{\ttfamily merge}\ifdim\ht0>\ht2 }
+
+% // and /* */ comments in pseudocode. Regression: "/" was an operator
+% (otherkeyword), which stopped listings from ever seeing "//" as a comment,
+% and "*" in "/*" was turned into \cdot.
+\pseudo{code/comments.txt}
+\lpsamefile{pseudo comments: / coloured only outside comments, /* kept}{\pseudotmp}{code/comments-expected.txt}
+\makeatletter
+\newcommand\lpcomments[2]{% #1 listings style, #2 code: sets \lpsawcomment, \lpsawkw
+  \begingroup
+  \let\lporigcolor\color
+  \def\lpkwname{latexpro@keyword}%
+  \def\color##1{\def\lptmp{##1}\ifx\lptmp\lpkwname\gdef\lpsawkw{1}\fi\lporigcolor{##1}}%
+  \gdef\lpsawkw{0}\gdef\lpsawcomment{0}%
+  \sbox0{\lstinline[style=#1,commentstyle=\gdef\lpsawcomment{1}]{#2}}%
+  \endgroup}
+\makeatother
+\lpcomments{latexpro-pseudo}{// a-b = c}
+\lptrue{pseudo // starts a comment}{\ifnum\lpsawcomment=1 }
+\lptrue{operators inside a pseudo comment are not coloured}{\ifnum\lpsawkw=0 }
+\lpcomments{latexpro-pseudo}{x /* a-b */}
+\lptrue{pseudo /* */ is a comment}{\ifnum\lpsawcomment=1 }
+\lpcomments{latexpro-pseudo}{a-b}
+\lptrue{operators in pseudo code are coloured}{\ifnum\lpsawkw=1 }
+\lpcomments{latexpro-python}{x # a-b = c}
+\lptrue{operators inside a Python comment are not coloured}{\ifnum\lpsawkw=0 }
+\lpcomments{latexpro-python}{s = 1}
+\lptrue{operators in Python code are coloured}{\ifnum\lpsawkw=1 }
+
+% names with hyphens. Regression: in ADD-building-to-SKYLINE the "-" were
+% operators, so only ADD and SKYLINE were function names (small caps) and
+% the "-" were red. A "-" between two letters now joins one name; n-1 and
+% a - b stay subtractions, and comments are left alone.
+\pseudo{code/hyphen.txt}
+\lpsamefile{pseudo keeps hyphenated names in one piece}{\pseudotmp}{code/hyphen-expected.txt}
+\ExplSyntaxOn
+\__latexpro_code_harvest_hyphen:n { code/hyphen.txt }
+\lptrue{hyphenated~function~names~are~found~(lower~case)}
+  { \str_if_eq:eeTF { \seq_use:Nn \l__latexpro_code_hyphen_names_seq { , } }
+      { add-building-to-skyline } { \iftrue } { \iffalse } }
+\bool_set_true:N \l__latexpro_code_hyphen_bool
+\__latexpro_code_harvest:n { code/hyphen.txt }
+\bool_set_false:N \l__latexpro_code_hyphen_bool
+\lptrue{hyphenated~parts~are~not~function~names~on~their~own}
+  { \str_if_eq:eeTF { \seq_use:Nn \l__latexpro_code_names_seq { , } }
+      { MERGE } { \iftrue } { \iffalse } }
+\ExplSyntaxOff
+% #1 code (a line of a pseudocode block, after \pseudo's pre-processing):
+% \lpsawfn is 1 when the function colour was used, \lpsawkw when the
+% keyword (operator) colour was
+\ExplSyntaxOn
+\iow_new:N \g__test_colours_iow
+\cs_new_protected:Npn \__test_colours_write:n #1
+  {
+    \iow_open:Nn \g__test_colours_iow { \c_sys_jobname_str -colours.tmp }
+    \iow_now:Ne \g__test_colours_iow { \tl_to_str:n {#1} }
+    \iow_close:N \g__test_colours_iow
+  }
+\NewDocumentCommand \lpcolours { +v }
+  {
+    \__test_colours_write:n {#1}
+    \group_begin:
+    \cs_set_eq:NN \lporigcolor \color
+    \cs_set_protected:Npn \color ##1
+      {
+        \str_if_eq:nnT {##1} { latexpro@keyword } { \gdef\lpsawkw{1} }
+        \str_if_eq:nnT {##1} { latexpro@function } { \gdef\lpsawfn{1} }
+        \lporigcolor {##1}
+      }
+    \gdef\lpsawkw{0} \gdef\lpsawfn{0}
+    \hbox_set:Nn \l_tmpa_box
+      { \lstinputlisting [ style = latexpro-pseudo ] { \c_sys_jobname_str -colours.tmp } }
+    \group_end:
+  }
+\ExplSyntaxOff
+\lpcolours{function $\mbox{\latexprohyphenname{add-to-sky}}$(x)}
+\lptrue{hyphenated name after function is a function name}{\ifnum\lpsawfn=1 }
+\lpcolours{$\mbox{\latexprohyphenname{left-part}}$}
+\lptrue{hyphenated variable is not a function name}{\ifnum\lpsawfn=0 }
+\lptrue{hyphens in a variable name are not operators}{\ifnum\lpsawkw=0 }
+\lpcolours{n-1}
+\lptrue{minus before a digit is still an operator}{\ifnum\lpsawkw=1 }
+\lpcolours{a - b}
+\lptrue{minus between spaces is still an operator}{\ifnum\lpsawkw=1 }
+\lpcolours{// function $\mbox{\latexprohyphenname{add-to-sky}}$}
+\lptrue{hyphenated name in a comment is not a function name}{\ifnum\lpsawfn=0 }
+\begingroup
+\ExplSyntaxOn
+\str_set:Nn \l_tmpa_str { add-to-sky }
+\seq_clear:N \l__latexpro_code_hyphen_names_seq
+\seq_put_right:NV \l__latexpro_code_hyphen_names_seq \l_tmpa_str
+\ExplSyntaxOff
+\lpcolours{x $\mbox{\latexprohyphenname{ADD-to-SKY}}$(1)}
+\endgroup
+\lptrue{a call of a hyphenated function is a function name}{\ifnum\lpsawfn=1 }
+\lptrue{hyphens in a function name are not operators}{\ifnum\lpsawkw=0 }
+\lpsametext{method with hyphens}
+  {\method{ADD-building-to-SKYLINE}}{{\latexprocodefont\color{latexpro@function}\scshape ADD-building-to-SKYLINE}}
+\lpsametext{variable with hyphens}
+  {\variable{left-sum}}{{\latexprocodefont\color{latexpro@text}left-sum}}
+\lpsametext{variable with hyphens and a subscript keeps one name}
+  {\variable{left-sum_i}}{$\latexprocodemath{left-sum}_{\latexprocodemath{i}}$}
+\lpsametext{variable subscript n-1 is still a subtraction}
+  {\variable{a_{n-1}}}{$\latexprocodemath{a}_{\latexprocodemath{n}-\latexprocodemath{1}}$}
+
+% Regression: a pseudo block with no \end{pseudo} ran on into the next
+% block, and the "\begin{pseudo}[...]" line printed as code gave "Missing
+% \endcsname". Now it is a clear error ("is an \end{pseudo} missing?") and
+% the line is left out. The error is silenced here and counted instead.
+\ExplSyntaxOn
+\int_gzero:N \g_tmpa_int
+\msg_redirect_name:nnn { latex-pro-code } { nested-begin } { none }
+\cs_set_eq:NN \__test_orig_msg_error:nnVV \msg_error:nnVV
+\cs_set_protected:Npn \msg_error:nnVV #1#2#3#4
+  { \int_gincr:N \g_tmpa_int \__test_orig_msg_error:nnVV {#1} {#2} #3 #4 }
+\ExplSyntaxOff
+\pseudo{code/nested-begin.txt}
+\lpsamefile{a begin pseudo line inside a block is left out}{\pseudotmp}{code/nested-begin-expected.txt}
+\lptrue{a begin pseudo line inside a block is an error}{\ifnum\csname g_tmpa_int\endcsname=1 }
+\ExplSyntaxOn
+\cs_set_eq:NN \msg_error:nnVV \__test_orig_msg_error:nnVV
+\msg_redirect_name:nnn { latex-pro-code } { nested-begin } { }
+\ExplSyntaxOff
+
+% pdflatex cannot load JetBrains Mono: the code font stays \ttfamily
+\makeatletter
+\lptrue{pdflatex keeps ttfamily as the code font}{\ifx\latexprocodefont\latexpro@defaultcodefont}
+\makeatother
+\lpdefined{wave height}{\latexprowaveheight}
+\lpdefined{wave length}{\latexprowavelength}
+% Regression: the wavy edges at a page break must fit together. The top
+% of a wave on the bottom edge of one part (where it bulges down the most)
+% is the bottom of a wave on the top edge of the next part, so the depth
+% of the south cut plus the depth of the north cut is the same (4 wave
+% heights) all along the edge. Before, both edges used the same wave and
+% bulged out at the same places.
+\makeatletter
+\def\latexpro@waveh{1.8}\def\latexpro@wavel{14}
+\newcommand\lpwavesum[1]{%
+  \pgfmathparse{\latexpro@wavedepth{1}{#1}+\latexpro@wavedepth{-1}{#1}}%
+  \pgfmathparse{abs(\pgfmathresult-7.2)<0.01}\ifnum\pgfmathresult=1 }
+\newcommand\lpwavedepth[3]{%
+  \pgfmathparse{abs(\latexpro@wavedepth{#1}{#2}-(#3))<0.01}\ifnum\pgfmathresult=1 }
+\lptrue{wave edges fit together at 0pt}{\lpwavesum{0}}
+\lptrue{wave edges fit together at 2pt}{\lpwavesum{2}}
+\lptrue{wave edges fit together at 3.5pt}{\lpwavesum{3.5}}
+\lptrue{wave edges fit together at 9pt}{\lpwavesum{9}}
+\lptrue{wave edges fit together at 10.5pt}{\lpwavesum{10.5}}
+\lptrue{wave edges fit together at 123.4pt}{\lpwavesum{123.4}}
+% a quarter period in: the bottom edge dips (cut 3h up), the top edge
+% reaches up (cut only h down), and three quarters in the other way round
+\lptrue{bottom edge dips where the top edge reaches up}{\lpwavedepth{1}{3.5}{5.4}}
+\lptrue{top edge reaches up where the bottom edge dips}{\lpwavedepth{-1}{3.5}{1.8}}
+\lptrue{bottom edge bulges where the top edge dips}{\lpwavedepth{1}{10.5}{1.8}}
+\lptrue{top edge dips where the bottom edge bulges}{\lpwavedepth{-1}{10.5}{5.4}}
+% both waves start in the middle (depth 2h) at the west side, so parts of
+% the same width line up
+\lptrue{bottom wave starts at depth 2h}{\lpwavedepth{1}{0}{3.6}}
+\lptrue{top wave starts at depth 2h}{\lpwavedepth{-1}{0}{3.6}}
+\makeatother
+
+% filename=false hides the file name in the header bar
+\python[filename=false]{code/sample.py}
+\pseudo[filename=false]{code/indent.txt}
+
+% caption / title go to the header bar, the rest stays listings options
+\ExplSyntaxOn
+\__latexpro_code_opts:n { caption = {Newton's~method}, firstline=2, lastline=5 }
+\lptrue{caption~is~taken~out~of~the~options}
+  { \str_if_eq:eeTF { \tl_to_str:N \l__latexpro_code_caption_tl } { Newton's~method } { \iftrue } { \iffalse } }
+\lptrue{other~options~go~to~listings}
+  { \str_if_eq:eeTF { \clist_use:Nn \l__latexpro_code_lst_clist { ; } } { firstline=\c_left_brace_str 2\c_right_brace_str;lastline=\c_left_brace_str 5\c_right_brace_str } { \iftrue } { \iffalse } }
+\cs_new_protected:Npn \__test_header:nn #1#2
+  {
+    \__latexpro_code_setup:nn {#1} {#2}
+    \tl_gset_eq:NN \g_tmpa_tl \l__latexpro_code_caption_tl
+  }
+\__test_header:nn { } { file.txt }
+\lptrue{header~shows~the~file~name~by~default}
+  { \str_if_eq:eeTF { \tl_to_str:N \g_tmpa_tl } { file.txt } { \iftrue } { \iffalse } }
+\__test_header:nn { filename = false } { file.txt }
+\lptrue{filename=false~leaves~the~header~empty}
+  { \tl_if_empty:NTF \g_tmpa_tl { \iftrue } { \iffalse } }
+\__test_header:nn { filename = false , caption = C } { file.txt }
+\lptrue{caption~still~shows~with~filename=false}
+  { \str_if_eq:eeTF { \tl_to_str:N \g_tmpa_tl } { C } { \iftrue } { \iffalse } }
+\__test_header:nn { filename } { file.txt }
+\lptrue{bare~filename~key~shows~the~file~name}
+  { \str_if_eq:eeTF { \tl_to_str:N \g_tmpa_tl } { file.txt } { \iftrue } { \iffalse } }
+% [length=x]: the wave period of a split edge, x times the usual; default 1
+\__latexpro_code_opts:n { length = 3 , firstline = 2 }
+\lptrue{length~sets~the~wave~factor}
+  { \str_if_eq:eeTF { \use:c { latexpro@wavefactor } } { 3 } { \iftrue } { \iffalse } }
+\lptrue{length~is~not~passed~to~listings}
+  { \str_if_eq:eeTF { \clist_use:Nn \l__latexpro_code_lst_clist { ; } }
+      { firstline=\c_left_brace_str 2\c_right_brace_str } { \iftrue } { \iffalse } }
+\__latexpro_code_opts:n { }
+\lptrue{without~length~the~wave~factor~is~1}
+  { \str_if_eq:eeTF { \use:c { latexpro@wavefactor } } { 1 } { \iftrue } { \iffalse } }
+\__latexpro_code_opts:n { title = T }
+\lptrue{title~is~the~same~as~caption}
+  { \str_if_eq:eeTF { \l__latexpro_code_caption_tl } { T } { \iftrue } { \iffalse } }
+
+% function names: name( and def/class/function NAME, keywords left out
+\__latexpro_code_harvest:n { code/sample.py }
+\lptrue{function~names~found~in~a~Python~file}
+  { \str_if_eq:eeTF { \seq_use:Nn \l__latexpro_code_names_seq { , } }
+      { newton,range,f,df,abs,RuntimeError } { \iftrue } { \iffalse } }
+\cs_new_protected:Npn \__test_has:n #1
+  {
+    \str_set:Nn \l_tmpa_str {#1}
+    \seq_if_in:NVTF \l__latexpro_code_names_seq \l_tmpa_str
+      { \bool_set_true:N \l_tmpa_bool } { \bool_set_false:N \l_tmpa_bool }
+  }
+\__latexpro_code_harvest:n { code/indent.txt }
+\__test_has:n { search }
+\lptrue{function~names~found~in~pseudocode}
+  { \bool_if:NTF \l_tmpa_bool { \iftrue } { \iffalse } }
+\__latexpro_code_harvest:n { code/sample.py }
+\__test_has:n { if }
+\lptrue{keywords~before~a~parenthesis~are~not~function~names}
+  { \bool_if:NTF \l_tmpa_bool { \iffalse } { \iftrue } }
+\ExplSyntaxOff
+
+% [span] is taken out of the listings options
+\ExplSyntaxOn
+\__latexpro_code_opts:n { span, firstline=2 }
+\lptrue{span~sets~span=true}
+  { \str_if_eq:VnTF \l__latexpro_code_span_tl { true } { \iftrue } { \iffalse } }
+\lptrue{span~is~not~passed~to~listings}
+  { \str_if_eq:eeTF { \clist_use:Nn \l__latexpro_code_lst_clist { ; } }
+      { firstline=\c_left_brace_str 2\c_right_brace_str } { \iftrue } { \iffalse } }
+\__latexpro_code_opts:n { firstline=2 }
+\lptrue{without~span~it~is~auto}
+  { \str_if_eq:VnTF \l__latexpro_code_span_tl { auto } { \iftrue } { \iffalse } }
+\__latexpro_code_opts:n { span=false }
+\lptrue{span=false~is~kept}
+  { \str_if_eq:VnTF \l__latexpro_code_span_tl { false } { \iftrue } { \iffalse } }
+\ExplSyntaxOff
+
+% Long boxes. Regression: a box taller than a page was never split and ran
+% off the bottom of the page. Now (span=auto) a box taller than a page
+% breaks across pages by itself, a shorter one is kept in one piece.
+\newcount\lpstart
+\makeatletter
+% \lpboxpage{label}: the page the label (set at the top of a box) is on
+\def\lp@labelpage#1#2#3\@nil{#2}
+\newcommand\lpboxpage[1]{\ifcsname r@#1\endcsname
+  \expandafter\expandafter\expandafter\lp@labelpage\csname r@#1\endcsname\@nil
+  \else 0\fi}
+\newcommand\lplabelbox[1]{\tcbset{latexpro-code/.append style={before upper={\label{#1}}}}}
+\makeatother
+\clearpage \lpstart=\value{page}
+\python{code/long.py}
+\lptrue{a python box taller than a page breaks across pages}{\ifnum\value{page}>\lpstart}
+\clearpage \lpstart=\value{page}
+\pseudo{code/long.txt}
+\lptrue{a pseudo box taller than a page breaks across pages}{\ifnum\value{page}>\lpstart}
+\clearpage \lpstart=\value{page}
+\begin{pythoncode}[caption=Long]
+y_1 = 1 * 2
+y_2 = 2 * 2
+y_3 = 3 * 2
+y_4 = 4 * 2
+y_5 = 5 * 2
+y_6 = 6 * 2
+y_7 = 7 * 2
+y_8 = 8 * 2
+y_9 = 9 * 2
+y_10 = 10 * 2
+y_11 = 11 * 2
+y_12 = 12 * 2
+y_13 = 13 * 2
+y_14 = 14 * 2
+y_15 = 15 * 2
+y_16 = 16 * 2
+y_17 = 17 * 2
+y_18 = 18 * 2
+y_19 = 19 * 2
+y_20 = 20 * 2
+y_21 = 21 * 2
+y_22 = 22 * 2
+y_23 = 23 * 2
+y_24 = 24 * 2
+y_25 = 25 * 2
+y_26 = 26 * 2
+y_27 = 27 * 2
+y_28 = 28 * 2
+y_29 = 29 * 2
+y_30 = 30 * 2
+y_31 = 31 * 2
+y_32 = 32 * 2
+y_33 = 33 * 2
+y_34 = 34 * 2
+y_35 = 35 * 2
+y_36 = 36 * 2
+y_37 = 37 * 2
+y_38 = 38 * 2
+y_39 = 39 * 2
+y_40 = 40 * 2
+y_41 = 41 * 2
+y_42 = 42 * 2
+y_43 = 43 * 2
+y_44 = 44 * 2
+y_45 = 45 * 2
+y_46 = 46 * 2
+y_47 = 47 * 2
+y_48 = 48 * 2
+y_49 = 49 * 2
+y_50 = 50 * 2
+y_51 = 51 * 2
+y_52 = 52 * 2
+y_53 = 53 * 2
+y_54 = 54 * 2
+y_55 = 55 * 2
+y_56 = 56 * 2
+y_57 = 57 * 2
+y_58 = 58 * 2
+y_59 = 59 * 2
+y_60 = 60 * 2
+y_61 = 61 * 2
+y_62 = 62 * 2
+y_63 = 63 * 2
+y_64 = 64 * 2
+y_65 = 65 * 2
+y_66 = 66 * 2
+y_67 = 67 * 2
+y_68 = 68 * 2
+y_69 = 69 * 2
+y_70 = 70 * 2
+y_71 = 71 * 2
+y_72 = 72 * 2
+y_73 = 73 * 2
+y_74 = 74 * 2
+y_75 = 75 * 2
+y_76 = 76 * 2
+y_77 = 77 * 2
+y_78 = 78 * 2
+y_79 = 79 * 2
+y_80 = 80 * 2
+\end{pythoncode}
+\lptrue{a long pythoncode environment breaks across pages}{\ifnum\value{page}>\lpstart}
+\clearpage \lpstart=\value{page}
+\begin{pseudo}[caption=Long]
+x <- x + 1
+x <- x + 2
+x <- x + 3
+x <- x + 4
+x <- x + 5
+x <- x + 6
+x <- x + 7
+x <- x + 8
+x <- x + 9
+x <- x + 10
+x <- x + 11
+x <- x + 12
+x <- x + 13
+x <- x + 14
+x <- x + 15
+x <- x + 16
+x <- x + 17
+x <- x + 18
+x <- x + 19
+x <- x + 20
+x <- x + 21
+x <- x + 22
+x <- x + 23
+x <- x + 24
+x <- x + 25
+x <- x + 26
+x <- x + 27
+x <- x + 28
+x <- x + 29
+x <- x + 30
+x <- x + 31
+x <- x + 32
+x <- x + 33
+x <- x + 34
+x <- x + 35
+x <- x + 36
+x <- x + 37
+x <- x + 38
+x <- x + 39
+x <- x + 40
+x <- x + 41
+x <- x + 42
+x <- x + 43
+x <- x + 44
+x <- x + 45
+x <- x + 46
+x <- x + 47
+x <- x + 48
+x <- x + 49
+x <- x + 50
+x <- x + 51
+x <- x + 52
+x <- x + 53
+x <- x + 54
+x <- x + 55
+x <- x + 56
+x <- x + 57
+x <- x + 58
+x <- x + 59
+x <- x + 60
+x <- x + 61
+x <- x + 62
+x <- x + 63
+x <- x + 64
+x <- x + 65
+x <- x + 66
+x <- x + 67
+x <- x + 68
+x <- x + 69
+x <- x + 70
+\end{pseudo}
+\lptrue{a long pseudo environment breaks across pages}{\ifnum\value{page}>\lpstart}
+% a split box gets square corners and no border on the split edges: the
+% jigsaw skin draws only the outer edges of each part
+\clearpage
+\makeatletter
+{\tcbset{latexpro-code/.append style={before upper={\xdef\lpskin{\kvtcb@skin@current}}}}%
+ \python{code/long.py}}
+\def\lpwant{enhanced jigsaw}
+\makeatother
+\lptrue{code boxes use the jigsaw skin (open, square split edges)}{\ifx\lpskin\lpwant}
+% span=false keeps even a long box in one piece
+% (checked on the decision: where an over-full page is shipped out is not
+% a stable thing to test)
+\clearpage
+\python[span=false]{code/long.py}
+\ExplSyntaxOn
+\lptrue{span=false~keeps~a~long~box~unbreakable}
+  { \str_if_eq:VnTF \l__latexpro_code_span_tl { false } { \iftrue } { \iffalse } }
+\ExplSyntaxOff
+\clearpage
+\python{code/long.py}
+\ExplSyntaxOn
+\lptrue{a~box~taller~than~a~page~is~made~breakable}
+  { \str_if_eq:VnTF \l__latexpro_code_span_tl { true } { \iftrue } { \iffalse } }
+\ExplSyntaxOff
+\python{code/sample.py}
+\ExplSyntaxOn
+\lptrue{a~short~box~stays~unbreakable}
+  { \str_if_eq:VnTF \l__latexpro_code_span_tl { false } { \iftrue } { \iffalse } }
+\ExplSyntaxOff
+% [span] still lets any box break
+\clearpage \lpstart=\value{page}
+\python[span]{code/long.py}
+\lptrue{python span breaks across pages}{\ifnum\value{page}>\lpstart}
+% a short box that does not fit at the bottom of a page moves to the next
+% page whole (it is not split); with [span] it is split.  Regression: after
+% one breakable box every later box was breakable too (\tcolorbox without a
+% group kept the option), so these come after the [span] boxes above.
+\clearpage \lpstart=\value{page}
+\noindent\rule{1pt}{\dimexpr\textheight-10\baselineskip}\par
+{\lplabelbox{lp-short}\python{code/sample.py}}
+\lptrue{a short box moves to the next page whole}
+  {\ifnum\lpboxpage{lp-short}=\numexpr\lpstart+1\relax}
+\clearpage \lpstart=\value{page}
+\noindent\rule{1pt}{\dimexpr\textheight-10\baselineskip}\par
+{\lplabelbox{lp-short-span}\python[span]{code/sample.py}}
+\lptrue{with span a short box is split at the page bottom}
+  {\ifnum\lpboxpage{lp-short-span}=\lpstart}
+% span=false in the pseudo environment, right after a [span] box: kept
+% whole (reported: span=false did not work, because of the same leak)
+\clearpage \lpstart=\value{page}
+\noindent\rule{1pt}{\dimexpr\textheight-10\baselineskip}\par
+{\lplabelbox{lp-pseudo-false}%
+\begin{pseudo}[span=false]
+function f(x)
+x <- 1
+x <- 2
+x <- 3
+x <- 4
+x <- 5
+x <- 6
+x <- 7
+return x
+end function
+\end{pseudo}}
+\lptrue{pseudo environment with span=false moves to the next page whole}
+  {\ifnum\lpboxpage{lp-pseudo-false}=\numexpr\lpstart+1\relax}
+\end{document}

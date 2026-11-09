@@ -1,0 +1,20 @@
+% Examples for latex-pro-links.sty
+\documentclass{article}
+\usepackage{latex-pro}
+\usepackage[hidelinks]{hyperref}  % clickable, without the coloured boxes
+\begin{document}
+Scan for the repository: \qr{https://github.com/ReelPlum/Latex-pro}
+
+\begin{center}
+  \qr*[3cm]{https://en.wikipedia.org/wiki/Hessian_matrix#Use_in_optimization}
+\end{center}
+
+\begin{figure}[h]
+  \centering
+  \qr*{https://example.com/notes?chapter=2&page=%2010}
+  \caption{Links with \texttt{\%}, \texttt{\#}, \texttt{\_} and \texttt{\&} are pasted as they are.}
+\end{figure}
+
+Inside another command, escape \texttt{\%} and \texttt{\#}:
+\fbox{\qr[1.5cm]{https://example.com/a\_b?y=\%20z\#top}}
+\end{document}

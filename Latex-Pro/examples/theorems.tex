@@ -1,0 +1,21 @@
+% Examples for latex-pro-theorems.sty
+\documentclass{article}
+\usepackage{latex-pro}
+\begin{document}
+\begin{proposition}[Identity]\label{prop:id}
+  For every $n \times n$ matrix $A$ we have $I_n A = A$.
+\end{proposition}
+\begin{exercise}\label{ex:hess}
+  Compute $\hessian*{2}$ for $f(x_1, x_2) = x_1^2 x_2$.
+\end{exercise}
+\begin{lemma}\label{lem:a} A lemma. \end{lemma}
+\begin{definition} A definition. \end{definition}
+\begin{remark} A remark. \end{remark}
+By \proposition{\ref{prop:id}}, \exercise{\ref{ex:hess}} needs no identity
+matrix, and \lemma{\ref{lem:a}} is unrelated.
+See also \theorem{4.2} and \exercise{b} in the course notes.
+
+\section*{References to the book}
+As shown in \booksection{2.3} and \bookchapter{4}, \bookeq{3.12} follows
+from \bookeq{(3.11)}; see also \booksection{A.2}, \booksection{b} and \bookeq{3.1a}.
+\end{document}

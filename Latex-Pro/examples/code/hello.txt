@@ -1,0 +1,11 @@
+function hello_world(x, y)
+if (x \geq y) then
+print(y)
+return x
+else if (x < y) then
+print(y)
+return y
+end
+for i = 1 to n do
+s <- s + a_i
+end for

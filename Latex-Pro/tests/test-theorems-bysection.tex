@@ -1,0 +1,14 @@
+% [bysection] given to latex-pro (passed on to latex-pro-theorems).
+\documentclass{article}
+\usepackage[bysection]{latex-pro}
+\usepackage{lptest}
+\begin{document}
+\section{One}
+\begin{theorem}\label{thm:a} A. \end{theorem}
+\section{Two}
+\begin{lemma}\label{lem:b} B. \end{lemma}
+\begin{lemma}\label{lem:c} C. \end{lemma}
+\lpref{bysection first section}{thm:a}{1.1}
+\lpref{bysection resets per section}{lem:b}{2.1}
+\lpref{bysection counts on}{lem:c}{2.2}
+\end{document}

@@ -1,0 +1,149 @@
+% latex-pro-theorems.sty -- theorem environments and small-caps references
+% (part of latex-pro)
+%
+% Usage:  \usepackage{latex-pro}  or  \usepackage[bysection]{latex-pro-theorems}
+%
+% Commands
+%   \begin{proposition} ... \end{proposition}   numbered environment
+%   \proposition{3}                small caps "Proposition", bold 3
+%   \exercise{b}                   "Exercise b": the argument is printed as is
+%   \proposition{\Ref*{prop:main}} the number of a label (a link with hyperref)
+%   Same for theorem, lemma, corollary, definition, exercise, example, remark.
+%   All share one counter. Option [bysection] numbers them 2.1, 2.2, ...
+%   Rename with e.g. \renewcommand\propositionname{Sætning}.
+%
+% References to the book
+%   \booksection{2.3}              small caps "Section", bold 2.3
+%   \bookchapter{4}                "Chapter 4"
+%   \bookeq{3.12}                  "Equation (3.12)", also \bookeq{(3.12)}
+%   The argument is always printed as is: \booksection{A.2}, \bookeq{3.1a},
+%   \booksection{b}. For a label pass its number: \bookeq{\Ref*{eq:x}}.
+%   Rename with \booksectionname, \bookchaptername, \bookeqname.
+%
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{latex-pro-theorems}[2026/11/03 v0.2 latex-pro: theorems and references]
+
+\newif\iflatexpro@bysection
+\DeclareOption{bysection}{\latexpro@bysectiontrue}
+\ProcessOptions\relax
+
+\RequirePackage{amsmath}
+\RequirePackage{amsthm}
+
+% ---------------------------------------------------------------------------
+% Theorem environments and small-caps references
+% ---------------------------------------------------------------------------
+% \proposition{x} is a reference, \begin{proposition} is the environment:
+% the env/<name>/begin hook raises a flag just before \begin calls
+% \proposition, so the one command can tell which use it is.
+\newcounter{latexprothm}
+\iflatexpro@bysection \counterwithin{latexprothm}{section} \fi
+\newif\iflatexpro@envstart
+
+% Look of the reference: the name ("Proposition") and the number ("3").
+% Redefine to taste, e.g. \renewcommand\latexprorefnumstyle[1]{#1}.
+% \textnormal keeps them upright inside italic theorem text.
+\newcommand\latexprorefstyle[1]{\textnormal{\textsc{#1}}}
+\newcommand\latexprorefnumstyle[1]{\textnormal{\textbf{#1}}}
+% #1 = styled reference text, #2 = label
+\newcommand\latexpro@reflink[2]{#1}
+\AtBeginDocument{%
+  \@ifpackageloaded{hyperref}%
+    {\renewcommand\latexpro@reflink[2]{\hyperref[#2]{#1}}}{}}
+
+\ExplSyntaxOn
+% #1 = kind (proposition, ...), #2 = the text to print after the name.
+% The argument is always printed as is: \exercise{b} gives "Exercise b",
+% \theorem{4.2} "Theorem 4.2". For a label pass its number,
+% \proposition{\Ref*{prop:x}}; that exact form also becomes a hyperref link.
+\cs_new_protected:Npn \latexpro_thmref:nn #1#2
+  { \latexpro_reftext:nn {#1} {#2} }
+\cs_generate_variant:Nn \regex_extract_once:NnNTF { NV }
+\tl_new:N  \l__latexpro_reftext_tl
+\seq_new:N \l__latexpro_reflabel_seq
+% the whole argument is one \ref / \ref* / \Ref / \Ref* of a label
+\regex_const:Nn \c__latexpro_reflabel_regex
+  { \A \c{(?:ref|Ref)} \*? \cB. (.*) \cE. \Z }
+% print #2 as is (spaces at the ends dropped)
+\cs_new_protected:Npn \latexpro_reftext:nn #1#2
+  {
+    \tl_set:Ne \l__latexpro_reftext_tl { \tl_trim_spaces:n {#2} }
+    \regex_extract_once:NVNTF \c__latexpro_reflabel_regex
+        \l__latexpro_reftext_tl \l__latexpro_reflabel_seq
+      {
+        \use:e
+          {
+            \exp_not:N \latexpro@reflink
+              {
+                \exp_not:N \latexpro_thmref_text:nn { \exp_not:n {#1} }
+                  { \exp_not:V \l__latexpro_reftext_tl }
+              }
+              { \seq_item:Nn \l__latexpro_reflabel_seq { 2 } }
+          }
+      }
+      { \exp_args:NnV \latexpro_thmref_text:nn {#1} \l__latexpro_reftext_tl }
+  }
+% #1 = kind, #2 = number
+\cs_new_protected:Npn \latexpro_thmref_text:nn #1#2
+  {
+    \latexprorefstyle { \mbox { \use:c { #1name } } }
+    \nobreakspace \latexprorefnumstyle
+      { \cs_if_exist_use:cF { latexpro@#1@num } { \use:n } {#2} }
+  }
+
+% #1 = kind, #2 = printed name, #3 = amsthm style
+\cs_new_protected:Npn \latexpro_newthm:nnn #1#2#3
+  {
+    \cs_if_exist:cF { #1name } { \cs_new:cpn { #1name } {#2} }
+    \theoremstyle {#3}
+    \newtheorem { latexpro@#1 } [ latexprothm ] { \use:c { #1name } }
+    \AddToHook { env/#1/begin } { \latexpro@envstarttrue }
+    \exp_args:Nc \NewDocumentCommand { #1 } { }
+      {
+        \iflatexpro@envstart
+          \latexpro@envstartfalse
+          \exp_after:wN \use_i:nn
+        \else
+          \exp_after:wN \use_ii:nn
+        \fi
+          { \use:c { latexpro@#1 } }
+          { \latexpro_thmref:nn {#1} }
+      }
+    \cs_new_protected:cpn { end#1 } { \use:c { endlatexpro@#1 } }
+  }
+
+\latexpro_newthm:nnn { theorem }     { Theorem }     { plain }
+\latexpro_newthm:nnn { proposition } { Proposition } { plain }
+\latexpro_newthm:nnn { lemma }       { Lemma }       { plain }
+\latexpro_newthm:nnn { corollary }   { Corollary }   { plain }
+\latexpro_newthm:nnn { definition }  { Definition }  { definition }
+\latexpro_newthm:nnn { exercise }    { Exercise }    { definition }
+\latexpro_newthm:nnn { example }     { Example }     { definition }
+\latexpro_newthm:nnn { remark }      { Remark }      { remark }
+
+% ---------------------------------------------------------------------------
+% References to sections, chapters and equations of the book
+% ---------------------------------------------------------------------------
+% The argument is always printed as is: \booksection{2.3}, \booksection{b}.
+% For a label of your own document pass the number: \bookeq{\Ref*{eq:x}}.
+% #1 = kind, #2 = printed name: defines \<kind> and \<kind>name
+\cs_new_protected:Npn \latexpro_newref:nn #1#2
+  {
+    \cs_if_exist:cF { #1name } { \cs_new:cpn { #1name } {#2} }
+    \exp_args:Nc \NewDocumentCommand { #1 } { m }
+      { \latexpro_reftext:nn {#1} {##1} }
+  }
+\latexpro_newref:nn { booksection } { Section }
+\latexpro_newref:nn { bookchapter } { Chapter }
+\latexpro_newref:nn { bookeq }      { Equation }
+% equation numbers go in parentheses; \bookeq{(3.1)} is the same as \bookeq{3.1}
+\cs_new:cpn { latexpro@bookeq@num } #1 { (#1) }
+\RenewDocumentCommand \bookeq { m }
+  {
+    \tl_set:Ne \l_tmpa_tl { \tl_trim_spaces:n {#1} }
+    \regex_replace_once:nnN { \A \( (.*) \) \Z } { \1 } \l_tmpa_tl
+    \exp_args:NnV \latexpro_reftext:nn { bookeq } \l_tmpa_tl
+  }
+\ExplSyntaxOff
+
+\endinput

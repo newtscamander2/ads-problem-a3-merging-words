@@ -1,0 +1,144 @@
+% Split edges of code boxes: the edge styles, the document default
+% (\usepackage[edge=...]{latex-pro} and \latexprocodesetup) and the box
+% option edge=...
+\documentclass{article}
+\usepackage[edge=zigzag]{latex-pro}
+\usepackage{lptest}
+\makeatletter
+% spy: every split edge drawn adds "style/side;" to \lpdrawn
+\let\lp@origedge\latexpro@edge
+\renewcommand\latexpro@edge[2]{%
+  \xdef\lpdrawn{\lpdrawn\latexpro@edgestyle/#1;}\lp@origedge{#1}{#2}}
+\gdef\lpdrawn{}
+\newcommand\lpcontains[2]{\in@{#2}{#1}\ifin@}
+% a box with [span] at the bottom of a page, so it is split in two
+\newcommand\lpsplit[1]{%
+  \clearpage\gdef\lpdrawn{}%
+  \noindent\rule{1pt}{\dimexpr\textheight-6\baselineskip}\par
+  \python[span,#1]{code/sample.py}}
+\makeatother
+\begin{document}
+\ExplSyntaxOn
+\cs_new_protected:Npn \__test_style:n #1
+  {
+    \__latexpro_code_opts:n {#1}
+    \tl_gset_eq:Nc \g_tmpa_tl { latexpro@edgestyle }
+    \tl_gset_eq:Nc \g_tmpb_tl { latexpro@wavefactor }
+  }
+\cs_new:Npn \__test_is:Nn #1#2
+  { \str_if_eq:eeTF { \tl_to_str:N #1 } {#2} { \iftrue } { \iffalse } }
+% \usepackage[edge=zigzag]{latex-pro} passes the option to latex-pro-code
+\__test_style:n { }
+\lptrue{package~option~edge=zigzag~is~the~default}{ \__test_is:Nn \g_tmpa_tl { zigzag } }
+\__test_style:n { edge = fade }
+\lptrue{box~option~edge~wins~over~the~default}{ \__test_is:Nn \g_tmpa_tl { fade } }
+\__test_style:n { }
+\lptrue{box~option~edge~does~not~stay~for~the~next~box}{ \__test_is:Nn \g_tmpa_tl { zigzag } }
+\__test_style:n { edge = fade , firstline = 2 }
+\lptrue{edge~is~not~passed~to~listings}
+  { \str_if_eq:eeTF { \clist_use:Nn \l__latexpro_code_lst_clist { ; } }
+      { firstline=\c_left_brace_str 2\c_right_brace_str } { \iftrue } { \iffalse } }
+% \latexprocodesetup changes the default for the boxes after it
+\group_begin:
+\latexprocodesetup { edge = torn , length = 2 }
+\__test_style:n { }
+\lptrue{latexprocodesetup~sets~the~default~edge}{ \__test_is:Nn \g_tmpa_tl { torn } }
+\lptrue{latexprocodesetup~sets~the~default~length}{ \__test_is:Nn \g_tmpb_tl { 2 } }
+\__test_style:n { length = 3 , edge = wave }
+\lptrue{box~options~win~over~latexprocodesetup}
+  { \bool_lazy_and:nnTF { \str_if_eq_p:Vn \g_tmpa_tl { wave } } { \str_if_eq_p:Vn \g_tmpb_tl { 3 } } { \iftrue } { \iffalse } }
+\latexprocodesetup { edge = scallop }
+\__test_style:n { }
+\lptrue{a~second~latexprocodesetup~overrides~the~first}
+  { \bool_lazy_and:nnTF { \str_if_eq_p:Vn \g_tmpa_tl { scallop } } { \str_if_eq_p:Vn \g_tmpb_tl { 2 } } { \iftrue } { \iffalse } }
+\group_end:
+% fade and continued draw over the edge, so they get more room next to it
+\cs_new_protected:Npn \__test_sep:n #1
+  {
+    \group_begin:
+    \tl_set:cn { latexpro@edgestyle } {#1}
+    \tcbset { latexpro-code-edge }
+    \dim_gset:Nn \g_tmpa_dim { \use:c { kvtcb@bottomsep } }
+    \dim_gset:Nn \g_tmpb_dim { \use:c { kvtcb@topsep } }
+    \group_end:
+  }
+\__test_sep:n { fade }
+\lptrue{fade~gets~room~before~a~break}{ \dim_compare:nNnTF { \g_tmpa_dim } > { 0pt } { \iftrue } { \iffalse } }
+\lptrue{fade~gets~room~after~a~break}{ \dim_compare:nNnTF { \g_tmpb_dim } > { 0pt } { \iftrue } { \iffalse } }
+\__test_sep:n { continued }
+\lptrue{continued~gets~room~for~its~label}{ \dim_compare:nNnTF { \g_tmpa_dim } > { 0pt } { \iftrue } { \iffalse } }
+\__test_sep:n { wave }
+\lptrue{wave~keeps~the~usual~room}{ \dim_compare:nNnTF { \g_tmpa_dim } = { 0pt } { \iftrue } { \iffalse } }
+\ExplSyntaxOff
+
+\makeatletter
+% Interlocking: for the cut styles the depth of the bottom edge of one part
+% plus that of the top edge of the next is 4 heights all along the edge
+\def\latexpro@waveh{1.8}\def\latexpro@wavel{14}
+\newcommand\lpsum[2]{%
+  \pgfmathparse{abs(\latexpro@depth{#1}{1}{#2}+\latexpro@depth{#1}{-1}{#2}-7.2)<0.01}%
+  \ifnum\pgfmathresult=1 }
+\newcommand\lpdepth[4]{%
+  \pgfmathparse{abs(\latexpro@depth{#1}{#2}{#3}-(#4))<0.01}\ifnum\pgfmathresult=1 }
+% the cut always lies between h and 3h in from the edge
+\newcommand\lpinrange[3]{%
+  \pgfmathparse{and(\latexpro@depth{#1}{#2}{#3}>1.79,\latexpro@depth{#1}{#2}{#3}<5.41)}%
+  \ifnum\pgfmathresult=1 }
+\makeatother
+\lptrue{zigzag edges fit together at 0pt}{\lpsum{zigzag}{0}}
+\lptrue{zigzag edges fit together at 2pt}{\lpsum{zigzag}{2}}
+\lptrue{zigzag edges fit together at 10.5pt}{\lpsum{zigzag}{10.5}}
+\lptrue{zigzag edges fit together at 123.4pt}{\lpsum{zigzag}{123.4}}
+\lptrue{scallop edges fit together at 0pt}{\lpsum{scallop}{0}}
+\lptrue{scallop edges fit together at 5pt}{\lpsum{scallop}{5}}
+\lptrue{scallop edges fit together at 77.7pt}{\lpsum{scallop}{77.7}}
+\lptrue{torn edges fit together at 0pt}{\lpsum{torn}{0}}
+\lptrue{torn edges fit together at 8.4pt}{\lpsum{torn}{8.4}}
+\lptrue{torn edges fit together at 200pt}{\lpsum{torn}{200}}
+\lptrue{wave edges fit together at 3.5pt}{\lpsum{wave}{3.5}}
+% the zigzag is in step with the wave: corners where the wave peaks
+\lptrue{zigzag starts at depth 2h}{\lpdepth{zigzag}{1}{0}{3.6}}
+\lptrue{zigzag bottom edge: corner up at a quarter period}{\lpdepth{zigzag}{1}{3.5}{5.4}}
+\lptrue{zigzag bottom edge: corner down at three quarters}{\lpdepth{zigzag}{1}{10.5}{1.8}}
+\lptrue{zigzag is straight between corners}{\lpdepth{zigzag}{1}{1.75}{4.5}}
+% scallop: points between the lobes (at whole periods), lobes in between
+\lptrue{scallop bottom edge: point at 0}{\lpdepth{scallop}{1}{0}{5.4}}
+\lptrue{scallop bottom edge: lobe at half a period}{\lpdepth{scallop}{1}{7}{1.8}}
+\lptrue{scallop top edge: dip at half a period}{\lpdepth{scallop}{-1}{7}{5.4}}
+% torn: irregular, but never deeper than a wave
+\lptrue{torn stays in range at 0pt}{\lpinrange{torn}{1}{0}}
+\lptrue{torn stays in range at 2.8pt}{\lpinrange{torn}{1}{2.8}}
+\lptrue{torn stays in range at 5.6pt}{\lpinrange{torn}{1}{5.6}}
+\lptrue{torn stays in range at 99.4pt}{\lpinrange{torn}{-1}{99.4}}
+\makeatletter
+\pgfmathsetmacro\lptorna{\latexpro@depth{torn}{1}{2.8}}
+\pgfmathsetmacro\lptornb{\latexpro@depth{torn}{1}{5.6}}
+\pgfmathsetmacro\lptornc{\latexpro@depth{torn}{1}{8.4}}
+\makeatother
+\pgfmathparse{and(\lptorna!=\lptornb,\lptornb!=\lptornc)}
+\lptrue{torn is irregular}{\ifnum\pgfmathresult=1 }
+
+% Every style draws both edges of a split box. Regression guard: the box
+% option and the default must reach the drawing of the edges.
+\lpsplit{}
+\lptrue{default (zigzag) draws the bottom edge}{\expandafter\lpcontains\expandafter{\lpdrawn}{zigzag/south;}}
+\lptrue{default (zigzag) draws the top edge}{\expandafter\lpcontains\expandafter{\lpdrawn}{zigzag/north;}}
+\makeatletter
+\@for\lpstyle:={wave,zigzag,scallop,torn,fade,dashed,scissors,continued,straight}\do{%
+  \edef\lpnext{\noexpand\lpsplit{edge=\lpstyle}}\lpnext
+  \edef\lpwant{{\lpstyle/south;}}%
+  \expandafter\expandafter\expandafter\lpcontains
+    \expandafter\expandafter\expandafter{\expandafter\lpdrawn\expandafter}\lpwant
+    \lp@ok{edge=\lpstyle\space draws the bottom edge}%
+  \else\lp@bad{edge=\lpstyle\space draws the bottom edge}{drawn: \lpdrawn}\fi
+  \edef\lpwant{{\lpstyle/north;}}%
+  \expandafter\expandafter\expandafter\lpcontains
+    \expandafter\expandafter\expandafter{\expandafter\lpdrawn\expandafter}\lpwant
+    \lp@ok{edge=\lpstyle\space draws the top edge}%
+  \else\lp@bad{edge=\lpstyle\space draws the top edge}{drawn: \lpdrawn}\fi}
+\makeatother
+% \latexprocodesetup in the document changes the boxes after it
+\latexprocodesetup{edge=dashed}
+\lpsplit{}
+\lptrue{latexprocodesetup reaches the drawn edges}{\expandafter\lpcontains\expandafter{\lpdrawn}{dashed/south;}}
+\end{document}

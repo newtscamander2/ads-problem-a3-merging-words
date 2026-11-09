@@ -1,0 +1,22 @@
+% Examples for latex-pro-matrix.sty
+% Build: from the repository root run  tests/run.sh  (or see the README)
+\documentclass{article}
+\usepackage{latex-pro}
+\begin{document}
+\section*{Matrices and vectors}
+\[ A = \bmat{1 & 2 \\ 3 & 4}, \quad B = \pmat{a & b \\ c & d}, \quad C = \mat{a & b \\ c & d} \]
+\[ I_2 = \idmat{2} \quad I_4 = \idmat{4} \quad I_n = \idmat{n} \]
+\[ \rowvec[x,y], \quad \rowvec[1, 2], \quad \colvec[x, y, z], \quad \colvec[1,2]\tp, \quad \rowvec[a] \]
+\[ x = \colvec{n} \in \R^n, \quad \colvec[v]{3}, \quad \rowvec[w]{4}, \quad \rowvec{n}, \quad \colvec[]{2} \]
+\[ A = \genmat{m}{n}, \quad B = \genmat[b]{2}{3}, \quad \genmat[]{2}{2}, \quad A\tp \]
+\[ S = \symmat{n}, \quad \symmat[s]{3}, \quad \symmat{1 & 2 & 3 \\ 4 & 5 \\ 6},
+   \quad \symmat{a & b \\ c} \]
+\[ \symmat{e & 0 \\ 0 & d}, \quad \symmat{1 & 2 & 3 \\ 2 & 4 & 5 \\ 3 & 5 & 6},
+   \quad \symmat[e,d]{2}, \quad \symmat[d_1,d_2,d_n]{n}, \quad \diagmat{e, d}, \quad \diagmat{\lambda_1, \lambda_2, \lambda_3} \]
+\section*{Bracket style}
+Default (round): \[ \idmat{2}, \quad \mat{a & b \\ c & d}, \quad \symmat[e,d]{2} \]
+\usematb
+After \verb|\usematb|: \[ \idmat{2}, \quad \mat{a & b \\ c & d}, \quad \gradient{2} \]
+\usematp
+After \verb|\usematp|: \[ \idmat{2} \]
+\end{document}

@@ -1,0 +1,48 @@
+% latex-pro-notation.sty -- norms, inner products, maps, optimisation
+% (part of latex-pro)
+%
+% Usage:  \usepackage{latex-pro}  or  \usepackage{latex-pro-notation}
+%
+% Commands
+%   \norm{x} \abs{x}               ||x||, |x|   (starred: auto-sized)
+%   \inner{u}{v}                   <u, v>
+%   A\tp                           transpose A^T
+%   \map{f}{S}{T}                  f : S -> T
+%   \defeq                         :=
+%   \argmin \argmax                operators, subscripts go underneath
+%   \minimize{f(x)}{x \in C \\ ...} min with stacked constraints below
+%   \maximize{f(x)}{...}           same with max
+%
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{latex-pro-notation}[2026/11/03 v0.2 latex-pro: general notation]
+
+\RequirePackage{amsmath}
+\RequirePackage{mathtools}
+
+% ---------------------------------------------------------------------------
+% Delimiters: \norm{x}, \abs{x}, \inner{u}{v}
+% Starred forms (\norm*{...}) grow with the contents; [\big] etc. fix the size.
+% ---------------------------------------------------------------------------
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+\DeclarePairedDelimiterX\inner[2]{\langle}{\rangle}{#1, #2}
+
+% ---------------------------------------------------------------------------
+% Operators
+% ---------------------------------------------------------------------------
+% transpose: A\tp -> A^T
+\NewDocumentCommand\tp{}{^{T}}
+% definition: x \defeq y -> x := y
+\NewDocumentCommand\defeq{}{\coloneqq}
+% \map{f}{S}{T} -> f : S -> T
+\NewDocumentCommand\map{mmm}{#1\colon #2\to #3}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% Optimisation problems, constraints stacked under min/max:
+% \minimize{f(x)}{x \in C \\ g(x) \le 0}
+\NewDocumentCommand\minimize{mm}{\min_{\substack{#2}}\; #1}
+\NewDocumentCommand\maximize{mm}{\max_{\substack{#2}}\; #1}
+
+\endinput

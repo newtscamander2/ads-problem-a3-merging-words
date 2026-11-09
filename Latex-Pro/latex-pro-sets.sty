@@ -1,0 +1,48 @@
+% latex-pro-sets.sty -- number sets, set notation, subsets of R^d
+% (part of latex-pro)
+%
+% Usage:  \usepackage{latex-pro}  or  \usepackage{latex-pro-sets}
+%
+% Commands
+%   \N \Z \Q \R                    number sets (blackboard bold)
+%   \set{1,2,3}                    {1,2,3}      (starred: auto-sized)
+%   \setof{x \in S}{p(x)}          {x in S | p(x)}
+%   \ball{v}{r}  \dist{u}{v}       B(v, r), d(u, v)
+%   \interior{S}  \bd{S}           interior S°, boundary dS
+%   \Rx  \Rx[t]                    polynomials R[x], R[t]
+%
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{latex-pro-sets}[2026/11/03 v0.2 latex-pro: sets]
+
+\RequirePackage{amssymb}
+\RequirePackage{mathtools}
+
+% ---------------------------------------------------------------------------
+% Number sets
+% ---------------------------------------------------------------------------
+\NewDocumentCommand\N{}{\mathbb{N}}
+\NewDocumentCommand\Z{}{\mathbb{Z}}
+\NewDocumentCommand\Q{}{\mathbb{Q}}
+\NewDocumentCommand\R{}{\mathbb{R}}
+
+% ---------------------------------------------------------------------------
+% Sets: \set{1,2,3}, \setof{x \in S}{p(x)}
+% Starred forms (\set*{...}) grow with the contents; [\big] etc. fix the size.
+% ---------------------------------------------------------------------------
+\DeclarePairedDelimiter\set{\{}{\}}
+\DeclarePairedDelimiterX\setof[2]{\{}{\}}{#1 \;\delimsize\vert\; #2}
+
+% ---------------------------------------------------------------------------
+% Subsets of R^d and polynomials (IMO26 notation)
+% ---------------------------------------------------------------------------
+% \ball{v}{\epsilon} -> B(v, epsilon), the open ball
+\NewDocumentCommand\ball{mm}{B(#1, #2)}
+% \dist{u}{v} -> d(u, v)
+\NewDocumentCommand\dist{mm}{d(#1, #2)}
+% \interior{S} -> S°,  \bd{S} -> boundary \partial S
+\NewDocumentCommand\interior{m}{{#1}^{\circ}}
+\NewDocumentCommand\bd{m}{\partial #1}
+% \Rx -> R[x], polynomials;  \Rx[t] -> R[t]
+\NewDocumentCommand\Rx{O{x}}{\mathbb{R}[#1]}
+
+\endinput

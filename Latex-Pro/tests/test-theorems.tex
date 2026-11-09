@@ -1,0 +1,35 @@
+% Tests for latex-pro-theorems.sty, loaded on its own.
+\documentclass{article}
+\usepackage{latex-pro-theorems}
+\usepackage{lptest}
+\begin{document}
+\begin{proposition}\label{prop:a} A. \end{proposition}
+\begin{lemma}\label{lem:b} B. \end{lemma}
+\begin{exercise}\label{ex:c} C. \end{exercise}
+\begin{remark}\label{rem:d} D. \end{remark}
+\lpref{environments share one counter (1)}{prop:a}{1}
+\lpref{environments share one counter (2)}{lem:b}{2}
+\lpref{environments share one counter (3)}{ex:c}{3}
+\lpref{environments share one counter (4)}{rem:d}{4}
+
+\lpsametext{reference from a label via \ref}{\proposition{\ref{prop:a}}}
+  {\textnormal{\textsc{Proposition}}~\textnormal{\textbf{1}}}
+% regression: \exercise{b} printed "Exercise ??" (no label b)
+\lpsametext{plain letter is written as is}{\exercise{b}}
+  {\textnormal{\textsc{Exercise}}~\textnormal{\textbf{b}}}
+\lpsametext{label name without \ref is written as is}{\proposition{prop:a}}
+  {\textnormal{\textsc{Proposition}}~\textnormal{\textbf{prop:a}}}
+\lpsametext{words and spaces}{\definition{ 2.3 (ii) }}
+  {\textnormal{\textsc{Definition}}~\textnormal{\textbf{2.3 (ii)}}}
+\lpsametext{reference from typed number}{\theorem{4.2}}
+  {\textnormal{\textsc{Theorem}}~\textnormal{\textbf{4.2}}}
+\begin{theorem}
+  \lpsametext{reference inside italic theorem text stays upright}{\exercise{\ref{ex:c}}}
+    {\textnormal{\textsc{Exercise}}~\textnormal{\textbf{3}}}
+\end{theorem}
+\lpsametext{renamed kind}{\renewcommand\remarkname{Bemærkning}\remark{7}}
+  {\textnormal{\textsc{Bemærkning}}~\textnormal{\textbf{7}}}
+\lpsametext{custom number style}{\renewcommand\latexprorefnumstyle[1]{#1}\lemma{2}}
+  {\textnormal{\textsc{Lemma}}~2}
+\lpdefined{latexprorefstyle exists}{\latexprorefstyle}
+\end{document}

@@ -1,0 +1,24 @@
+function search(A, x)
+lo <- 1
+hi <- n
+while lo <= hi do
+m <- (lo + hi) / 2
+if A_m = x then return m
+if A_m < x then
+lo <- m + 1
+else
+hi <- m - 1
+end if
+end while
+repeat
+i <- i + 1
+until i >= n
+for i in range(n):
+s <- s + a_{i+1}
+done
+if (x != y) {
+return x \cdot \alpha_i
+}
+// a comment with $x^2$ kept as written
+return -1
+end function

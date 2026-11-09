@@ -1,0 +1,28 @@
+% Regression: \ref-style arguments (\ref, \ref*, \Ref*, \eqref ...) in the
+% book references. \bookeq{\Ref*{l}} stopped with "Missing \endcsname".
+\documentclass{article}
+\usepackage{latex-pro}
+\usepackage{hyperref}
+\usepackage{lptest}
+% \Ref and \Ref* come from hyperref (protected xparse commands)
+\newcommand\want[2]{\textnormal{\textsc{#1}}~\textnormal{\textbf{#2}}}
+\begin{document}
+\section{Intro}\label{sec:intro}
+\begin{equation}\label{l} x = 1 \end{equation}
+\lpsametext{bookeq with \Ref*}{\bookeq{\Ref*{l}}}{\want{Equation}{(\ref*{l})}}
+\lpsametext{bookeq with \ref}{\bookeq{\ref*{l}}}{\want{Equation}{(\ref*{l})}}
+\lpsametext{bookeq with parentheses and \ref}{\bookeq{(\ref*{l})}}{\want{Equation}{(\ref*{l})}}
+\lpsametext{booksection with \ref}{\booksection{\ref*{sec:intro}}}{\want{Section}{\ref*{sec:intro}}}
+\lpsametext{bookchapter with \Ref}{\bookchapter{\Ref{sec:intro}}}{\want{Chapter}{\ref*{sec:intro}}}
+\lpsametext{theorem with \ref}{\theorem{\ref*{sec:intro}}}{\want{Theorem}{\ref*{sec:intro}}}
+\lpsametext{bookeq with maths}{\bookeq{$\ast$}}{\want{Equation}{($\ast$)}}
+% regression: \booksection{b} printed "Section ??" (no label b)
+\lpsametext{plain word is written as is}{\booksection{b}}{\want{Section}{b}}
+\lpsametext{word with spaces}{\booksection{ Appendix B }}{\want{Section}{Appendix B}}
+\lpsametext{bookeq without ref is text}{\bookeq{l}}{\want{Equation}{(l)}}
+% theorem references print their argument as is too; labels go in \Ref*
+\begin{lemma}\label{lem:a} A. \end{lemma}
+\lpsametext{theorem with \Ref*}{\lemma{\Ref*{lem:a}}}{\want{Lemma}{1}}
+\lpsametext{theorem with a plain word}{\exercise{b}}{\want{Exercise}{b}}
+\lpsametext{theorem with a label name is text}{\lemma{lem:a}}{\want{Lemma}{lem:a}}
+\end{document}

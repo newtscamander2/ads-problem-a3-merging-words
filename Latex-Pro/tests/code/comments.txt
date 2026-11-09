@@ -1,0 +1,6 @@
+function merge(A, B) // join A and B
+// a <= b and x * y in a comment
+x <- a / b
+return x // done, a/b
+/* block comment */
+end function

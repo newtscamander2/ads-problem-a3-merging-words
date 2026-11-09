@@ -1,0 +1,16 @@
+% One QR code per page. tests/run.sh renders each page, reads the code
+% back with zbarimg and compares with tests/qr/links-decode.txt (one line
+% per page), so a code that typesets but encodes the wrong text fails.
+\documentclass{article}
+\usepackage{latex-pro}
+\usepackage{hyperref}
+\pagestyle{empty}
+\begin{document}
+\qr[5cm]{https://example.com}
+\newpage
+\qr[5cm]{https://example.com/a_b?x=1&y=%20z#top}
+\newpage
+\fbox{\qr[5cm]{https://example.com/a\_b?y=\%20z\#top}}
+\newpage
+\qr*[5cm]{https://github.com/ReelPlum/Latex-pro}
+\end{document}

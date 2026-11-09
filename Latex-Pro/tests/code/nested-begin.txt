@@ -1,0 +1,10 @@
+function f(x)
+return x
+end
+
+\begin{pseudo}[caption=Add building to skyline, length=4]
+	function add-building-to-skyline(A, building)
+	ArrayList<Integer> skylineWithOneBuilding = {building.left, building.height, building.right};
+
+	return Merge(A, skylineWithOneBuilding);
+	end

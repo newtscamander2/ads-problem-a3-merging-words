@@ -1,0 +1,16 @@
+% Examples for latex-pro-code.sty
+\documentclass{article}
+\usepackage{latex-pro}
+\begin{document}
+\section*{Code and pseudocode}
+\python[caption={Newton's method}]{code/newton.py}
+\python*[firstline=1, lastline=3]{code/newton.py}
+Inline: \py{x -= f(x) / df(x)}.
+\begin{pythoncode}[caption={Typed in the .tex file}]
+for k in range(3):
+    print(k ** 2)
+\end{pythoncode}
+\pseudo[caption={Pseudocode from a plain .txt file}]{code/hello.txt}
+\pseudoindentfalse
+\pseudo*{code/hello.txt}
+\end{document}
