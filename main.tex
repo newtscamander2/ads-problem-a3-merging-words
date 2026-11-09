@@ -20,6 +20,9 @@
 \usepackage{latex-pro}
 \latexprocodesetup{edge=torn}	
 
+\usepackage{Latex-Pro/latex-pro-matrix}
+\usepackage{Latex-Pro/latex-pro-calculus}
+
 
 \geometry{left=3cm, right=6cm, top=3cm, bottom=3cm, marginparwidth=4cm} 
 
@@ -51,6 +54,7 @@
 \section*{Comment}
 
 \section*{a)}
+We let M[i,j] denote the boolean value that is true if and only if $z_1 z_2 ... z_{i+j}$ is a merge of $x_1 x_2 ... x_{i}$ and $y_1 y_2 ... y_{j}$. We can use the recurrence
 
 \begin{equation}
 	M[i,j] = \begin{cases}
@@ -62,16 +66,24 @@
 	\label{piecewise}
 \end{equation}
 
+We can fill out the table with
+
+\begin{align}
+	x & = SHOE     \\
+	y & = EARS     \\
+	z & = SEAHORSE \\
+\end{align}
+
 \begin{center}
 	\begin{tabular}{c  c | c c c c c}
-		  &        &   & E & A & R & S \\
+		  &        & y & E & A & R & S \\
 		  & M[i,j] & 0 & 1 & 2 & 3 & 4 \\
 		\toprule
-		  & 0      &   &   &   &   &   \\
-		S & 1      &   &   &   &   &   \\
-		H & 2      &   &   &   &   &   \\
-		O & 3      &   &   &   &   &   \\
-		E & 4      &   &   &   &   &   \\
+		x & 0      & T & F & F & F & F \\
+		S & 1      & T & T & T & F & F \\
+		H & 2      & F & F & T & F & F \\
+		O & 3      & F & F & T & T & T \\
+		E & 4      & F & F & F & F & T \\
 
 		\bottomrule
 	\end{tabular}
@@ -83,37 +95,37 @@ To dynamically find out if the word \variable{z} is the merge of two words \vari
 The different if-statements are made from the piecewise-function given in \bookeq{\ref{piecewise}}.
 
 \begin{pseudo}[span]
-function Is-Merge(M, x, y, z, i, j)
+	function Is-Merge(M, x, y, z, i, j)
 	if i == 0 and j == 0 then
-		M[i,j] = true
+	M[i,j] = true
 
-		return true
+	return true
 	end
 
 	for a = 0 -> j //Bottom up programming :)
-		for b = 0 -> i
-			Merge(M, x, y, z, b, a)
-		end
+	for b = 0 -> i
+	Merge(M, x, y, z, b, a)
+	end
 	end
 
 	if i == 0 and j > 0 then
-		M[i,j] = z_j == y_j and z_j == M[0,j-1]
+	M[i,j] = z_j == y_j and z_j == M[0,j-1]
 
-		return M[i,j]
+	return M[i,j]
 	end
 
 	if i > 0 and j == 0 then
-		M[i,j] = z_i == x_i and z_i == M[i-1,0]
+	M[i,j] = z_i == x_i and z_i == M[i-1,0]
 
-		return M[i,j]
+	return M[i,j]
 	end
 
 	if i > 0 and j > 0 then
-		M[i,j] = (z_{i+j} == y_j and z_{i+j} == M[i,j-1]) and (z_{i+j} == x_i and z_{i+j} == M[i-1,j])
+	M[i,j] = (z_{i+j} == y_j and z_{i+j} == M[i,j-1]) and (z_{i+j} == x_i and z_{i+j} == M[i-1,j])
 
-		return M[i,j]
+	return M[i,j]
 	end
-end
+	end
 \end{pseudo}
 The \method{Is-Merge} function runs through every letter in both \variable{x} and \variable{y}. It is therefore $O(n+m)$ where $n$ is the length of \variable{x} and $m$ is the length of \variable{y}.
 
@@ -123,9 +135,9 @@ To also report the indexes of \variable{z} that constitute to \variable{x} we ca
 Here they use the idea of storing another array \variable{B} in order to store in which direction the different inputs were influenced.
 
 \begin{pseudo}
-function Is-Merge-Constituted(M, B, x, y, z, i, j)
+	function Is-Merge-Constituted(M, B, x, y, z, i, j)
 
-end
+	end
 \end{pseudo}
 
 \end{document}
