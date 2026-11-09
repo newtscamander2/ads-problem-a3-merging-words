@@ -17,15 +17,14 @@
 \usepackage{xcolor}
 \usepackage{booktabs}
 
+\makeatletter
+\def\input@path{{Latex-Pro/}}
+\makeatother
 \usepackage{latex-pro}
+
 \latexprocodesetup{edge=torn}	
 
-\usepackage{Latex-Pro/latex-pro-matrix}
-\usepackage{Latex-Pro/latex-pro-calculus}
-
-
 \geometry{left=3cm, right=6cm, top=3cm, bottom=3cm, marginparwidth=4cm} 
-
 
 \linenumbers
 
@@ -54,7 +53,7 @@
 \section*{Comment}
 
 \section*{a)}
-We let M[i,j] denote the boolean value that is true if and only if $z_1 z_2 ... z_{i+j}$ is a merge of $x_1 x_2 ... x_{i}$ and $y_1 y_2 ... y_{j}$. We can use the recurrence
+We let M[i,j] denote the boolean value that is true if and only if $z_1 z_2 ... z_{i+j}$ is a merge of $x_1 x_2 ... x_{i}$ and $y_1 y_2 ... y_{j}$. We can use the recurrence $M[i,j]$ to fill out the table.
 
 \begin{equation}
 	M[i,j] = \begin{cases}
@@ -66,7 +65,7 @@ We let M[i,j] denote the boolean value that is true if and only if $z_1 z_2 ... 
 	\label{piecewise}
 \end{equation}
 
-We can fill out the table with
+We can fill out the table with $x, y$ and z.
 
 \begin{align}
 	x & = SHOE     \\
