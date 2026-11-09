@@ -1,59 +1,43 @@
 % =====================================================================
-%  Forside: Algorithms and Datastructures -- Handin 7: Merging Words
-%  Kompilér med XeLaTeX eller LuaLaTeX (så kommer Comic Sans / Comic Neue
-%  med). pdfLaTeX virker også, men så bliver fonten en kedelig sans-serif.
+%  forside.tex  --  definerer \makefrontpage
+%
+%  Brug:
+%    I preamblen:          \input{forside}
+%    Efter \begin{document}: \makefrontpage
+%
+%  Navne og dato tages fra \author{...} og \date{...} i hoveddokumentet.
 % =====================================================================
-\documentclass[a4paper,11pt]{article}
-
-% ---------------------------------------------------------------------
-%  >>> SKIFT DATOEN HER <<<
-%  Fx: \newcommand{\afleveringsdato}{16. november 2026}
-% ---------------------------------------------------------------------
-\newcommand{\afleveringsdato}{\today}
-
-\title{Algorithms and Datastructures\\Handin 7: Merging Words}
-\author{
-    202605673 Lukas Alstrup \\
-    202605116 Thomas Seeberg Hansen \\
-    202606296 Frederik Dommer Løvbjerg Plum
-}
-\date{\afleveringsdato}
-
 % ---------------------------------------------------------------------
 %  Pakker
 % ---------------------------------------------------------------------
-\usepackage[margin=0pt]{geometry}
 \usepackage{iftex}
-\usepackage[dvipsnames,svgnames]{xcolor}
+\usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric,shapes.symbols,shapes.callouts,shadows,
                 decorations.text,decorations.pathmorphing,calc,positioning}
 \usepackage{twemojis}   % farvede emojis som virker i alle engines
 
 % ---------------------------------------------------------------------
-%  Comic Sans (eller den nærmeste ting vi kan finde)
+%  Comic Sans -- kun på forsiden (resten af dokumentet beholder sin font)
 % ---------------------------------------------------------------------
 \ifPDFTeX
-  \usepackage[T1]{fontenc}
-  \usepackage[utf8]{inputenc}
   \IfFileExists{comicneue.sty}
-    {\usepackage{comicneue}\renewcommand{\familydefault}{\sfdefault}}
-    {\renewcommand{\familydefault}{\sfdefault}}
-  \newcommand{\comicmono}{\ttfamily}
+    {\usepackage{comicneue}\newcommand{\forsidefont}{\sffamily}}
+    {\newcommand{\forsidefont}{\sffamily}}
 \else
   \usepackage{fontspec}
   \IfFontExistsTF{Comic Sans MS}
-    {\setmainfont{Comic Sans MS}}
+    {\newfontfamily\forsidefont{Comic Sans MS}}
     {\IfFontExistsTF{Comic Neue}
-      {\setmainfont{Comic Neue}}
+      {\newfontfamily\forsidefont{Comic Neue}}
       {\IfFontExistsTF{ComicNeue-Regular.otf}
-        {\setmainfont{ComicNeue}[Extension=.otf,UprightFont=*-Regular,
-                                 BoldFont=*-Bold]}
-        {\renewcommand{\familydefault}{\sfdefault}}}}
-  \newcommand{\comicmono}{\ttfamily}
+        {\newfontfamily\forsidefont{ComicNeue}[Extension=.otf,
+           UprightFont=*-Regular,BoldFont=*-Bold]}
+        {\newcommand{\forsidefont}{\sffamily}}}}
 \fi
+\newcommand{\comicmono}{\ttfamily}
 
-\pagestyle{empty}
+
 
 % ---------------------------------------------------------------------
 %  Farver
@@ -266,8 +250,15 @@
 }
 
 % =====================================================================
-\begin{document}
+
+% ---------------------------------------------------------------------
+%  \makefrontpage
+% ---------------------------------------------------------------------
 \makeatletter
+\newcommand{\makefrontpage}{%
+\begingroup
+\thispagestyle{empty}
+\forsidefont
 \begin{tikzpicture}[remember picture, overlay]
   \coordinate (C) at (current page.center);
   \begin{scope}[shift={(C)}]
@@ -480,4 +471,7 @@
 \end{tikzpicture}
 \makeatother
 \null
-\end{document}
+\newpage
+\endgroup
+}
+\makeatother

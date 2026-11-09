@@ -1,6 +1,12 @@
 
 \documentclass{article}
 
+\usepackage{iftex}
+\ifPDFTeX                     % kun til pdfLaTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\fi
+
 \usepackage[a4paper]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
@@ -18,14 +24,14 @@
 \usepackage{booktabs}
 \usepackage[T1]{fontenc}
 
+
 \makeatletter
 \def\input@path{{Latex-Pro/}}
 \makeatother
 \usepackage{latex-pro}
-
 \latexprocodesetup{edge=torn}	
 
-\input{frontpage}
+\input{forside}
 
 \geometry{left=3cm, right=6cm, top=3cm, bottom=3cm, marginparwidth=4cm} 
 
@@ -49,6 +55,8 @@
 
 \date{09. November, 2026}  
 \begin{document}
+
+\makefrontpage
 
 \begin{problem}[A3 Merging Words]
 \end{problem}
