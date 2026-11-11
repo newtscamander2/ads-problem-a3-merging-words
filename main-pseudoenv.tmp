@@ -1,3 +1,7 @@
-function Is-Merge-Constituted(M, B, x, y, z, i, j)
+	function Is-Merge-Constituted(M, B, x, y, z, i, j)
 
 	end
+
+	function Print-Merge(M, B) {
+
+	}

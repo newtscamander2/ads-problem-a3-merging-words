@@ -76,17 +76,10 @@ test
 	\label{piecewise}
 \end{equation}
 
-<<<<<<< Updated upstream
-\begin{pseudo}[span]
-	String x = ' SHOE';
-	String y = ' EARS';
-	String z = ' SEAHORSE';
-=======
 \begin{pseudo}[span, from=java]
 	String x = " SHOE";
 	String y = " EARS";
 	String z = " SEAHORSE";
->>>>>>> Stashed changes
 
 	boolean[][] M = new boolean[x.length()][y.length()];
 
@@ -146,7 +139,7 @@ The different if-statements are made from the piecewise-function given in \booke
 
 	for a = 0 -> j //Bottom up programming :)
 	for b = 0 -> i
-	Merge(M, x, y, z, b, a)
+	Is-Merge(M, x, y, z, b, a)
 	end
 	end
 
@@ -169,17 +162,21 @@ The different if-statements are made from the piecewise-function given in \booke
 	end
 	end
 \end{pseudo}
-The \method{Is-Merge} function runs through every letter in both \variable{x} and \variable{y}. It is therefore $O(n+m)$ where $n$ is the length of \variable{x} and $m$ is the length of \variable{y}.
+The \method{Is-Merge} function runs through every letter in both \variable{x} and \variable{y}. It is therefore $O(nm)$ where $n$ is the length of \variable{x} and $m$ is the length of \variable{y}.
 
 \section*{c)}
 To also report the indexes of \variable{z} that constitute to \variable{x} we can use the idea from the book in finding the longest common subsequence.
 
 Here they use the idea of storing another array \variable{B} in order to store in which direction the different inputs were influenced.
 
-\begin{pseudo}
+\begin{pseudo}[span]
 	function Is-Merge-Constituted(M, B, x, y, z, i, j)
 
 	end
+
+	function Print-Merge(M, B) {
+
+	}
 \end{pseudo}
 
 \end{document}
