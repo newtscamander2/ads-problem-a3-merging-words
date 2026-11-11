@@ -71,7 +71,7 @@ test
 		true                                                              & \text{if } i=0 \land j=0   \\
 		z_j = y_j \land M[0,j-1] \                                        & \text{if } i=0 \land j > 0 \\
 		z_i = x_i \land M[i-1,0] \                                        & \text{if } i>0 \land j = 0 \\
-		(z_{i+j} = y_j \land M[i,j-1]) \lor (z_{i+j} = x_i \lor M[i-1,j]) & \text{if } i>0 \land j > 0
+		(z_{i+j} = y_j \land M[i,j-1]) \lor (z_{i+j} = x_i \land M[i-1,j]) & \text{if } i>0 \land j > 0
 	\end{cases}
 	\label{piecewise}
 \end{equation}
@@ -144,19 +144,19 @@ The different if-statements are made from the piecewise-function given in \booke
 	end
 
 	if i == 0 and j > 0 then
-	M[i,j] = z_j == y_j and z_j == M[0,j-1]
+	M[i,j] = z_j == y_j and M[0,j-1]
 
 	return M[i,j]
 	end
 
 	if i > 0 and j == 0 then
-	M[i,j] = z_i == x_i and z_i == M[i-1,0]
+	M[i,j] = z_i == x_i and M[i-1,0]
 
 	return M[i,j]
 	end
 
 	if i > 0 and j > 0 then
-	M[i,j] = (z_{i+j} == y_j and z_{i+j} == M[i,j-1]) and (z_{i+j} == x_i and z_{i+j} == M[i-1,j])
+	M[i,j] = (z_{i+j} == y_j and M[i,j-1]) or (z_{i+j} == x_i and M[i-1,j])
 
 	return M[i,j]
 	end
@@ -186,12 +186,12 @@ We use Chapter 14.4 from CLRS to modify our merge algorithm to print the longest
 	end
 
 	if i == 0 and j > 0 then
-	M[i,j] = z_j == y_j and z_j == M[0,j-1]
+	M[i,j] = z_j == y_j and M[0,j-1]
 	return M[i,j]
 	end
 
 	if i > 0 and j == 0 then
-	M[i,j] = z_i == x_i and z_i == M[i-1,0]
+	M[i,j] = z_i == x_i and M[i-1,0]
 
 	if M[i,j] == true then
 		B[i] = true;
@@ -201,9 +201,9 @@ We use Chapter 14.4 from CLRS to modify our merge algorithm to print the longest
 	end
 
 	if i > 0 and j > 0 then
-	M[i,j] = (z_{i+j} == y_j and z_{i+j} == M[i,j-1]) and (z_{i+j} == x_i and z_{i+j} == M[i-1,j])
+	M[i,j] = (z_{i+j} == y_j and M[i,j-1]) or (z_{i+j} == x_i and M[i-1,j])
 
-	if M[i,j] == true then
+	if M[i,j] == true and z_{i+j} == x_i then
 		B[i+j] = true;
 	end
 
