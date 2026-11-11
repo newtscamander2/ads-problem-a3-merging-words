@@ -1,0 +1,35 @@
+function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
+    if i == 0 and j == 0 then
+        M[i,j] = true
+
+        return true
+    end
+
+    for a = 0 $\to$ j
+        for b = 0 $\to$ i
+            $\mbox{\latexprohyphenname{Is-Merge}}$(M, x, y, z, b, a)
+        end
+    end
+
+    if i == 0 and j $>$ 0 then
+        M[i,j] = $\latexprocodemath{z}_{\latexprocodemath{j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and $\latexprocodemath{z}_{\latexprocodemath{j}}$ == M[0,j-1]
+        return M[i,j]
+    end
+
+    if i $>$ 0 and j == 0 then
+        M[i,j] = $\latexprocodemath{z}_{\latexprocodemath{i}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and $\latexprocodemath{z}_{\latexprocodemath{i}}$ == M[i-1,0]
+        return M[i,j]
+    end
+
+    if i $>$ 0 and j $>$ 0 then
+        M[i,j] = ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and $\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == M[i,j-1]) and ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and $\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == M[i-1,j])
+        return M[i,j]
+
+        // code in here
+    end
+end
+
+function $\mbox{\latexprohyphenname{Print-Merge-With-X}}$(M, B) {
+    if(i==)
+
+    }
