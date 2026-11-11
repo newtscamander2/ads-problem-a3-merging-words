@@ -19,6 +19,7 @@ function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
     if i $>$ 0 and j == 0 then
         M[i,j] = $\latexprocodemath{z}_{\latexprocodemath{i}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and M[i-1,0]
 
+        //Track B
         if M[i,j] == true then
             B[i] = true;
         end
@@ -29,6 +30,7 @@ function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
     if i $>$ 0 and j $>$ 0 then
         M[i,j] = ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and M[i,j-1]) or ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and M[i-1,j])
 
+        //Track B
         if M[i,j] == true and $\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ then
             B[i+j] = true;
         end

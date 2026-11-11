@@ -19,6 +19,7 @@
 	if i > 0 and j == 0 then
 	M[i,j] = z_i == x_i and M[i-1,0]
 
+	//Track B
 	if M[i,j] == true then
 		B[i] = true;
 	end
@@ -29,6 +30,7 @@
 	if i > 0 and j > 0 then
 	M[i,j] = (z_{i+j} == y_j and M[i,j-1]) or (z_{i+j} == x_i and M[i-1,j])
 
+	//Track B
 	if M[i,j] == true and z_{i+j} == x_i then
 		B[i+j] = true;
 	end

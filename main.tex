@@ -167,9 +167,8 @@ The \method{Is-Merge} function runs through every letter in both \variable{x} an
 \section*{c)}
 To also report the indexes of \variable{z} that constitute to \variable{x} we can use the idea from the book in finding the longest common subsequence.
 
-Here they use the idea of storing another array \variable{B} in order to store in which direction the different inputs were influenced.
-
-We use Chapter 14.4 from CLRS to modify our merge algorithm to print the longest common subsequence between x and y.
+Here they use the idea of storing another array \variable{B} in order to 
+%BASICALLY JUST WRITE WHAT HAPPENS IN THE PSEUDO CODE INTO
 
 \begin{pseudo}[span]
 	function Is-Merge-Constituted(M, B, x, y, z, i, j)
@@ -193,6 +192,7 @@ We use Chapter 14.4 from CLRS to modify our merge algorithm to print the longest
 	if i > 0 and j == 0 then
 	M[i,j] = z_i == x_i and M[i-1,0]
 
+	//Track B
 	if M[i,j] == true then
 		B[i] = true;
 	end
@@ -203,6 +203,7 @@ We use Chapter 14.4 from CLRS to modify our merge algorithm to print the longest
 	if i > 0 and j > 0 then
 	M[i,j] = (z_{i+j} == y_j and M[i,j-1]) or (z_{i+j} == x_i and M[i-1,j])
 
+	//Track B
 	if M[i,j] == true and z_{i+j} == x_i then
 		B[i+j] = true;
 	end
