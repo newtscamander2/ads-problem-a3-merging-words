@@ -918,19 +918,19 @@
     \regex_replace_once:nnN
       { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
         \s* \w+ \s* < \s* ([^;]*?) \s* ; [^;)]* \+\+ [^;)]* \) \s* \{? \s* \Z }
-      { \1for\ \2\ @@lpjeq@@\ \3\ to\ \4\ -\ 1\ do } #1
+      { \1for\ \2\ <-\ \3\ to\ \4\ -\ 1\ do } #1
     \regex_replace_once:nnN
       { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
         \s* \w+ \s* @@lpjle@@ \s* ([^;]*?) \s* ; [^;)]* \+\+ [^;)]* \) \s* \{? \s* \Z }
-      { \1for\ \2\ @@lpjeq@@\ \3\ to\ \4\ do } #1
+      { \1for\ \2\ <-\ \3\ to\ \4\ do } #1
     \regex_replace_once:nnN
       { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
         \s* \w+ \s* > \s* ([^;]*?) \s* ; [^;)]* -- [^;)]* \) \s* \{? \s* \Z }
-      { \1for\ \2\ @@lpjeq@@\ \3\ downto\ \4\ +\ 1\ do } #1
+      { \1for\ \2\ <-\ \3\ downto\ \4\ +\ 1\ do } #1
     \regex_replace_once:nnN
       { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
         \s* \w+ \s* @@lpjge@@ \s* ([^;]*?) \s* ; [^;)]* -- [^;)]* \) \s* \{? \s* \Z }
-      { \1for\ \2\ @@lpjeq@@\ \3\ downto\ \4\ do } #1
+      { \1for\ \2\ <-\ \3\ downto\ \4\ do } #1
     % for (x : xs)  ->  for each x in xs
     \regex_replace_once:nnN
       { \A (\s*) for \s* \( \s* (\w+) \s* : \s* (.*?) \s* \) \s* \{? \s* \Z }
@@ -979,10 +979,96 @@
       { \1[\2] } #1
     \regex_replace_all:nnN { new \s+ \w+ \s* \[ ([^\]]*) \] } { new\ array[\1] } #1
     \regex_replace_all:nnN { \b null \b } { nil } #1
+    % even out the spacing: i+j and M[i-1] are written like i + j and
+    % M[i - 1].  A "-" between two letters is left alone, it joins a
+    % hyphenated name (Is-Merge).
+    \regex_replace_all:nnN { \+ } { \ +\  } #1
+    \regex_replace_all:nnN { (\w) - (\d) } { \1\ -\ \2 } #1
+    \regex_replace_all:nnN { (\d) - (\w) } { \1\ -\ \2 } #1
     \__latexpro_java_unops:N #1
     % collapse the space runs the rewrites leave behind
     \regex_replace_all:nnN { (\S) \ \ + } { \1\  } #1
     \regex_replace_once:nnN { \s+ \Z } { } #1
+  }
+% Java that leaves the braces out: "if (x)" on a line of its own governs
+% exactly the next statement, and the block ends with it.  Count the control
+% lines still waiting for their statement and close them all when it
+% arrives, so one line can turn into a line plus its end lines.  A statement
+% is complete when the Java line ends in a semicolon: a line that does not
+% ("... ||" continued on the next line) is not the statement yet.
+\int_new:N  \g__latexpro_java_pending_int
+\bool_new:N \l__latexpro_java_brace_bool
+\bool_new:N \l__latexpro_java_semi_bool
+\bool_new:N \l__latexpro_java_ctrl_bool
+\bool_new:N \l__latexpro_java_cmt_bool
+\bool_new:N \l__latexpro_java_end_bool
+\str_new:N  \l__latexpro_java_src_str
+\str_new:N  \l__latexpro_java_test_str
+\seq_new:N  \l__latexpro_java_out_seq
+% a statement carried on over several lines: the lines after the first are
+% indented one step further, so the break is visible
+\bool_new:N \g__latexpro_java_open_bool
+\int_new:N  \g__latexpro_java_cont_int
+\cs_new_protected:Npn \__latexpro_java_lines:NN #1#2
+  {
+    % what the Java line ends in is read without its comment: the brace of
+    % "for (...) {   // bottom up" is not the last thing on the line
+    \str_set_eq:NN \l__latexpro_java_src_str #1
+    \regex_replace_once:nnN { \s* (?: // | /\* ) .* \Z } { }
+      \l__latexpro_java_src_str
+    \regex_match:nVTF { \{ \s* \Z } \l__latexpro_java_src_str
+      { \bool_set_true:N \l__latexpro_java_brace_bool }
+      { \bool_set_false:N \l__latexpro_java_brace_bool }
+    \regex_match:nVTF { ; \s* \Z } \l__latexpro_java_src_str
+      { \bool_set_true:N \l__latexpro_java_semi_bool }
+      { \bool_set_false:N \l__latexpro_java_semi_bool }
+    \bool_lazy_and:nnTF
+      { \g__latexpro_java_open_bool }
+      { \bool_not_p:n { \l__latexpro_java_brace_bool } }
+      { \int_gset:Nn \g__latexpro_java_cont_int { 1 } }
+      { \int_gzero:N \g__latexpro_java_cont_int }
+    \__latexpro_java_to_pseudo:N #1
+    \seq_clear:N #2
+    \seq_put_right:NV #2 #1
+    % the statement has arrived: close every block that was waiting for it
+    \bool_if:NT \l__latexpro_java_semi_bool
+      {
+        \prg_replicate:nn { \g__latexpro_java_pending_int }
+          { \seq_put_right:Nn #2 { end } }
+        \int_gzero:N \g__latexpro_java_pending_int
+      }
+    % a control line with no brace of its own now waits for one statement
+    \str_set:Ne \l__latexpro_java_test_str { \tl_trim_spaces:V #1 }
+    % a line that opens a block: it is the one that can be left waiting for
+    % its statement.  An end line (a "}") closes one, so it is neither that
+    % nor a statement -- it must not be counted as either.
+    \bool_set_false:N \l__latexpro_java_ctrl_bool
+    \regex_match:nVT { (?: \b (?: then | do ) \s* | \A else \s* ) \Z }
+      \l__latexpro_java_test_str
+      { \bool_set_true:N \l__latexpro_java_ctrl_bool }
+    \bool_set_false:N \l__latexpro_java_end_bool
+    \regex_match:nVT { \A end \s* \Z } \l__latexpro_java_test_str
+      { \bool_set_true:N \l__latexpro_java_end_bool }
+    \bool_lazy_and:nnT
+      { \bool_not_p:n { \l__latexpro_java_brace_bool } }
+      { \l__latexpro_java_ctrl_bool }
+      { \int_gincr:N \g__latexpro_java_pending_int }
+    % does the statement run on into the next line?  (\regex_match: is a
+    % protected conditional, so it has no predicate for \bool_lazy_any:n)
+    \bool_set_false:N \l__latexpro_java_cmt_bool
+    \regex_match:nVT { \A // } \l__latexpro_java_test_str
+      { \bool_set_true:N \l__latexpro_java_cmt_bool }
+    \bool_lazy_any:nTF
+      {
+        { \str_if_empty_p:N \l__latexpro_java_test_str }
+        { \l__latexpro_java_semi_bool }
+        { \l__latexpro_java_brace_bool }
+        { \l__latexpro_java_ctrl_bool }
+        { \l__latexpro_java_cmt_bool }
+        { \l__latexpro_java_end_bool }
+      }
+      { \bool_gset_false:N \g__latexpro_java_open_bool }
+      { \bool_gset_true:N \g__latexpro_java_open_bool }
   }
 % split off a // comment, rewrite only the code in front of it
 \cs_new_protected:Npn \__latexpro_java_to_pseudo:N #1
@@ -1006,9 +1092,21 @@
   }
 \cs_new_protected:Npn \__latexpro_pseudo_line_do:n #1
   {
+    \str_if_eq:VnTF \g__latexpro_code_from_tl { java }
+      {
+        \str_set:Nn \l__latexpro_line_str {#1}
+        \__latexpro_java_lines:NN \l__latexpro_line_str \l__latexpro_java_out_seq
+        \seq_map_inline:Nn \l__latexpro_java_out_seq
+          {
+            \__latexpro_pseudo_line_emit:n {##1}
+            \int_gzero:N \g__latexpro_java_cont_int
+          }
+      }
+      { \__latexpro_pseudo_line_emit:n {#1} }
+  }
+\cs_new_protected:Npn \__latexpro_pseudo_line_emit:n #1
+  {
     \str_set:Nn \l__latexpro_line_str {#1}
-    \str_if_eq:VnT \g__latexpro_code_from_tl { java }
-      { \__latexpro_java_to_pseudo:N \l__latexpro_line_str }
     \ifpseudoindent
       \exp_args:NNV \str_replace_all:Nnn \l__latexpro_line_str
         \c__latexpro_tab_str { ~ }
@@ -1061,7 +1159,9 @@
       \iow_now:Ne \g__latexpro_pseudo_iow
         {
           \str_if_empty:NF \l__latexpro_line_str
-            { \prg_replicate:nn { 4 * \l__latexpro_depth_int } { \c_space_tl } }
+            { \prg_replicate:nn
+                { 4 * ( \l__latexpro_depth_int + \g__latexpro_java_cont_int ) }
+                { \c_space_tl } }
           \l__latexpro_line_str
         }
       \bool_if:NT \l__latexpro_open_bool
@@ -1107,6 +1207,9 @@
     \iow_open:Nn \g__latexpro_pseudo_iow { \c__latexpro_pseudo_file_str }
     \int_zero:N \l__latexpro_depth_int
     \int_zero:N \l__latexpro_pseudo_lineno_int
+    \int_gzero:N \g__latexpro_java_pending_int
+    \int_gzero:N \g__latexpro_java_cont_int
+    \bool_gset_false:N \g__latexpro_java_open_bool
     \ior_str_map_inline:Nn \g__latexpro_pseudo_ior
       { \__latexpro_pseudo_line:n {##1} }
     \iow_close:N \g__latexpro_pseudo_iow

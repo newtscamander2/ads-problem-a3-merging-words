@@ -13,7 +13,6 @@
 
 	if i == 0 and j > 0 then
 	M[i,j] = z_j == y_j and z_j == M[0,j-1]
-
 	return M[i,j]
 	end
 

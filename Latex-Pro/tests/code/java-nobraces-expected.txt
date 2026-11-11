@@ -1,0 +1,13 @@
+for i $\gets$ 0 to length(M) - 1 do
+    for j $\gets$ 0 to length(M[i]) - 1 do
+
+        if i = 0 and j = 0 then
+            M[i][j] $\gets$ true
+        end
+    end
+end
+
+if i $>$ 0 and j $>$ 0 then
+    M[i][j] $\gets$ (z[i + j] = y[j] and M[i][j - 1]) or
+        (z[i + j] = x[i] and M[i - 1][j])
+end

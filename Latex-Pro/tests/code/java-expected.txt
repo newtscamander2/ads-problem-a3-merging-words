@@ -6,12 +6,12 @@ function isMerge(M, x, y, i, j)
         M[i][j] $\gets$ true
         return true
     end
-    for b = 0 to n - 1 do // bottom up
-        for c = 0 to j do
+    for b $\gets$ 0 to n - 1 do // bottom up
+        for c $\gets$ 0 to j do
             isMerge(M, x, y, b, c)
         end
     end
-    for d = n - 1 downto 0 do
+    for d $\gets$ n - 1 downto 0 do
         count $\gets$ count + 2
     end
     for each w in words do

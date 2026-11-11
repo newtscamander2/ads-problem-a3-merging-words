@@ -70,7 +70,7 @@ function isMerge(M, x, y, i, j)
         M[i][j] ← true
         return true
     end
-    for b = 0 to length(x) - 1 do // bottom up
+    for b ← 0 to length(x) - 1 do // bottom up
         isMerge(M, x, y, b, j)
     end
     return M[i][j]
@@ -86,8 +86,8 @@ What it does, line by line:
 | `int n;` | `let n` |
 | `if (a == b) {` … `}` | `if a = b then` … `end` |
 | `} else if (a > b) {`, `} else {` | `else if a > b then`, `else` |
-| `for (int i = 0; i < n; i++) {` | `for i = 0 to n - 1 do` |
-| `for (int i = n - 1; i >= 0; i--) {` | `for i = n - 1 downto 0 do` |
+| `for (int i = 0; i < n; i++) {` | `for i ← 0 to n - 1 do` |
+| `for (int i = n - 1; i >= 0; i--) {` | `for i ← n - 1 downto 0 do` |
 | `for (String w : words) {` | `for each w in words do` |
 | `while (k != 0) {`, `do {` … `} while (c)` | `while k ≠ 0 do`, `repeat` … `until not (c)` |
 | `boolean f(int a, int b) {` | `function f(a, b)` |
@@ -100,7 +100,49 @@ What it does, line by line:
 | `null` | `nil` |
 
 A `//` comment is kept as it is, and the block is indented by the keywords
-the rewrite produces, as any pseudocode block is.
+the rewrite produces, as any pseudocode block is. `=` becomes `←` wherever
+it assigns (including the `i` of a `for`), and stays `=` where it compares
+(`==`). The spacing around `+` and `-` is evened out, so `z[i+j]` and
+`M[i - 1]` come out written the same way; a `-` between two letters is left
+alone, since it joins a hyphenated name like `Is-Merge`.
+
+**Braces are optional.** In Java a control statement with no braces governs
+exactly the one statement after it, and the rewrite follows that rule, so
+the `end` lines still come out right:
+
+```latex
+\begin{pseudo}[from=java]
+for(int i = 0; i < M.length; i++)
+for(int j = 0; j < M[i].length; j++)
+
+if(i == 0 && j == 0)
+M[i][j] = true;
+\end{pseudo}
+```
+
+```
+for i ← 0 to length(M) - 1 do
+    for j ← 0 to length(M[i]) - 1 do
+
+        if i = 0 and j = 0 then
+            M[i][j] ← true
+        end
+    end
+end
+```
+
+Worth reading twice if that is not the shape you expected: without braces
+those three blocks all close on the one statement, which is what the Java
+does too. If you meant the loops to hold more than that, the braces have to
+be in the Java.
+
+A statement is over at its semicolon, so one spread over several lines stays
+one statement, and its later lines are indented a step further:
+
+```
+M[i][j] ← (z[i + j] = y[j] and M[i][j - 1]) or
+    (z[i + j] = x[i] and M[i - 1][j])
+```
 
 **It is a filter, not a parser.** It reads one line at a time and rewrites
 what it recognises, which is idiomatic Java with one statement per line. It

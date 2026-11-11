@@ -106,7 +106,7 @@ We can fill out the table with
 \begin{align}
 	x & = SHOE     \\
 	y & = EARS     \\
-	z & = SEAHORSE \\
+	z & = SEAHORSE
 \end{align}
 
 \begin{center}
@@ -169,12 +169,14 @@ To also report the indexes of \variable{z} that constitute to \variable{x} we ca
 
 Here they use the idea of storing another array \variable{B} in order to store in which direction the different inputs were influenced.
 
+We use Chapter 14.4 from CLRS to modify our merge algorithm to print the longest common subsequence between x and y.
+
 \begin{pseudo}[span]
 	function Is-Merge-Constituted(M, B, x, y, z, i, j)
-		if i == 0 and j == 0 then
-		M[i,j] = true
+	if i == 0 and j == 0 then
+	M[i,j] = true
 
-		return true
+	return true
 	end
 
 	for a = 0 -> j //Bottom up programming :)
@@ -185,7 +187,6 @@ Here they use the idea of storing another array \variable{B} in order to store i
 
 	if i == 0 and j > 0 then
 	M[i,j] = z_j == y_j and z_j == M[0,j-1]
-
 	return M[i,j]
 	end
 
