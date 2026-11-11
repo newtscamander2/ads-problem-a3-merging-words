@@ -1,5 +1,5 @@
 % =====================================================================
-%  forside.tex  --  definerer \makefrontpage
+%  frontpage.tex  --  definerer \makefrontpage  (forside.tex + frontpage.tex merged)
 %
 %  Brug:
 %    I preamblen:          \input{forside}
@@ -14,7 +14,7 @@
 \usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric,shapes.symbols,shapes.callouts,shadows,
-                decorations.text,decorations.pathmorphing,calc,positioning}
+                decorations.text,decorations.pathmorphing,calc,positioning,shapes.misc}
 \usepackage{twemojis}   % farvede emojis som virker i alle engines
 
 % ---------------------------------------------------------------------
@@ -39,6 +39,13 @@
 
 
 
+\author{
+    202605673 Lukas Alstrup \\
+    202605116 Thomas Seeberg Hansen \\
+    202606296 Frederik Dommer Løvbjerg Plum
+}
+\date{09. November, 2026}
+
 % ---------------------------------------------------------------------
 %  Farver
 % ---------------------------------------------------------------------
@@ -59,6 +66,18 @@
 \definecolor{coonGrey}{HTML}{9A9AAE}
 \definecolor{shoeCol}{HTML}{FF5FC8}
 \definecolor{earsCol}{HTML}{2D9CFF}
+\definecolor{neonPink}{HTML}{FF2BD6}
+\definecolor{neonCyan}{HTML}{00F0FF}
+\definecolor{neonLime}{HTML}{B6FF00}
+\definecolor{nightBox}{HTML}{14082B}
+
+% starburst-klistermærke: \burst{pos}{rotation}{farve}{tekst}
+\newcommand{\burst}[4]{%
+  \node[star, star points=14, star point ratio=1.35, minimum size=2.6cm,
+        fill=#3, draw=black, line width=1.4pt, rotate=#2,
+        drop shadow={shadow xshift=3pt, shadow yshift=-3pt, opacity=.5},
+        align=center, font=\bfseries\scriptsize, text width=1.6cm,
+        inner sep=0pt] at (#1) {#4};}
 
 % ---------------------------------------------------------------------
 %  Regnbuetekst: hvert bogstav får sin egen farve
@@ -94,6 +113,7 @@
 % ---------------------------------------------------------------------
 %  TikZ: fursonaer
 % ---------------------------------------------------------------------
+\def\smokepuffs{12}% antal røgpuffs per bil (sættes før hver \pic)
 \tikzset{
   outline/.style={draw=black, line width=1.1pt, line join=round},
   % ----- Lux, the Diesel Fox (Lukas) -----
@@ -194,8 +214,21 @@
   % ----- E46 Touring (diesel, selvfølgelig) -----
   pics/diesel/.style={code={
     % røg
-    \foreach \i/\s/\g in {1/0.18/55,2/0.26/45,3/0.35/35,4/0.45/25,5/0.55/18}
-      {\fill[black!\g!gray,opacity=0.85] (-2.45-0.55*\i, 0.12+0.18*\i) circle (\s);}
+    % MASSIV røgsky: puffs vokser, stiger og bliver lysere
+    \foreach \i in {1,...,\smokepuffs}{
+      \pgfmathsetmacro{\sx}{-2.45-0.42*\i-0.012*\i*\i}
+      \pgfmathsetmacro{\sy}{0.12+0.1*\i+0.008*\i*\i}
+      \pgfmathsetmacro{\sr}{0.18+0.075*\i}
+      \pgfmathsetmacro{\sg}{max(8,70-4.5*\i)}
+      \pgfmathsetmacro{\so}{max(0.35,0.9-0.035*\i)}
+      \fill[black!\sg!gray, opacity=\so] (\sx,\sy) circle (\sr);
+      \fill[black!\sg!gray!80!white, opacity=\so*0.8]
+        (\sx+0.45*\sr,\sy+0.35*\sr) circle (0.7*\sr)
+        (\sx-0.4*\sr,\sy+0.45*\sr) circle (0.6*\sr)
+        (\sx+0.1*\sr,\sy-0.4*\sr) circle (0.55*\sr);
+    }
+    % sod-kerne ved udstødningen
+    \fill[black, opacity=.8] (-2.6,0.12) circle (0.14) (-2.85,0.18) circle (0.18);
     % tagræling
     \draw[black!70, line width=2.2pt, line cap=round] (-1.95,1.68) -- (0.15,1.68);
     \foreach \x in {-1.85,-0.9,0.05} {\draw[black!70, line width=1.6pt] (\x,1.55) -- (\x,1.68);}
@@ -232,7 +265,6 @@
     % udstødning
     \fill[gray,outline] (-2.45,0.06) rectangle (-2.18,0.18);
     % tekst
-    \node[font=\bfseries\footnotesize, text=white] at (-0.65,0.4) {DIESEL};
     \node[font=\bfseries\tiny, text=white, rotate=80] at (-2.18,0.38) {320d};
     % hjul (femeget fælge)
     \foreach \x in {-1.45,1.4}{
@@ -321,8 +353,32 @@
         drop shadow={opacity=0.4, shadow xshift=4pt, shadow yshift=-4pt},
         inner xsep=16pt, inner ysep=12pt, rotate=-2, align=center]
         (title) at (0,10.6)
+        {\fontsize{30}{36}\selectfont\bfseries\phantom{Algorithms and}\\[2pt]
+         \fontsize{30}{36}\selectfont\bfseries\phantom{Datastructures}};
+  % 3D-ekstrudering + glød
+  \foreach \gx/\gy in {-0.05/0,0.05/0,0/0.05,0/-0.05}
+    \node[rotate=-2, align=center, text=neonPink, opacity=.35, inner sep=0pt]
+      at (\gx,10.6+\gy) {\fontsize{30}{36}\selectfont\bfseries Algorithms and\\[2pt]
+                          \fontsize{30}{36}\selectfont\bfseries Datastructures};
+  \foreach \d [count=\k] in {0.12,0.1,0.08,0.06,0.04,0.02}{
+    \pgfmathsetmacro{\mix}{\k*16}
+    \node[rotate=-2, align=center, text=rbViolet!\mix!black, inner sep=0pt]
+      at (\d,10.6-\d) {\fontsize{30}{36}\selectfont\bfseries Algorithms and\\[2pt]
+                        \fontsize{30}{36}\selectfont\bfseries Datastructures};
+  }
+  \node[rotate=-2, align=center, inner sep=0pt] at (0,10.6)
         {\fontsize{30}{36}\selectfont\bfseries\rainbowtext{Algorithms and}\\[2pt]
          \fontsize{30}{36}\selectfont\bfseries\rainbowtext{Datastructures}};
+  % tape-klistermærker
+  \node[fill=rbYellow, text=black, rotate=-12, font=\bfseries\large,
+        minimum width=3.4cm, draw=black, line width=1pt, drop shadow={opacity=.5}]
+    at ($(title.north east)+(-0.6,0.05)$) {SLAY / 10};
+  \node[fill=neonPink, text=white, rotate=9, font=\bfseries,
+        minimum width=3cm, draw=black, line width=1pt, drop shadow={opacity=.5}]
+    at ($(title.south west)+(-0.2,-0.4)$) {no cap fr fr};
+  % SIGMA + SKIBIDI i hjørnerne uden for regnbuen
+  \burst{9.25,10.4}{12}{rbYellow}{SIGMA\\$\Theta(nm)$\\RUNTIME}
+  \burst{-9.25,10.4}{-8}{neonCyan}{SKIBIDI\\RECUR-\\RENCE}
 
   % emojis rundt om titlen
   \node[rotate=15]  at (-8.6,13.4) {\emo[1.4cm]{rainbow}};
@@ -338,6 +394,10 @@
         drop shadow={opacity=0.35}]
         at (0,7.75)
         {\Large\bfseries Handin 7: Merging Words \texttwemoji{scissors}\texttwemoji{memo}};
+
+  \node[fill=white, draw=black, rounded corners=6pt, font=\small\itshape\bfseries,
+        text=rbViolet, rotate=-1, inner sep=4pt]
+    at (0,6.45) {``two strings enter. one string leaves.''};
 
   % ------------------------------------------------------------ SEAHORSE-merge
   \node[font=\Large\bfseries, text=shoeCol!80!black] at (-7.8,5.9) {x = \textcolor{shoeCol}{SHOE}};
@@ -396,48 +456,99 @@
   % ------------------------------------------------------------ memes
   % 67
   \node[rotate=-8, fill=rbYellow, draw=black, line width=1.5pt, circle,
-        minimum size=3.3cm, drop shadow={opacity=0.4}] (sixseven) at (-7.5,-6.2) {};
-  \node[rotate=-8, font=\fontsize{46}{46}\selectfont\bfseries] at ($(sixseven)+(0,0.25)$)
+        minimum size=3.1cm, drop shadow={opacity=0.4}] (sixseven) at (-8.4,-6.1) {};
+  \node[rotate=-8, font=\fontsize{44}{44}\selectfont\bfseries] at ($(sixseven)+(0,0.25)$)
        {\textcolor{rbRed}{6}\textcolor{rbBlue}{7}};
-  \node[rotate=-8, font=\scriptsize\bfseries, align=center] at ($(sixseven)+(0,-0.95)$)
+  \node[rotate=-8, font=\scriptsize\bfseries, align=center] at ($(sixseven)+(0,-0.9)$)
        {M[6,7]? Out of\\bounds. Still 67.};
-  \node[rotate=-25] at ($(sixseven)+(-1.6,1.4)$) {\emo[0.9cm]{raising hands}};
-  \node[rotate=25]  at ($(sixseven)+(1.65,1.3)$) {\emo[0.9cm]{raising hands}};
+  \node[rotate=-25] at ($(sixseven)+(-1.5,1.35)$) {\emo[0.8cm]{raising hands}};
+  \node[rotate=25]  at ($(sixseven)+(1.55,1.25)$) {\emo[0.8cm]{raising hands}};
 
   % terminal
   \node[fill=black!88, text=rbGreen, draw=rbGreen, line width=1.2pt, rounded corners=4pt,
-        align=left, font=\comicmono\small, rotate=3, drop shadow={opacity=0.4},
-        inner sep=7pt] at (-1.7,-6.0)
+        align=left, font=\comicmono\footnotesize, rotate=3, drop shadow={opacity=0.4},
+        inner sep=6pt] at (-3.5,-5.85)
        {\$ ./merge SHOE EARS SEAHORSE\\
         > true \texttwemoji{party popper}\\
         \$ ./merge SHOE EARS SEAHORSES\\
         > Segmentation fault\\\phantom{>} (core dumped) \texttwemoji{skull}};
 
+  % git merge
+  \node[sticky, fill=skyTop!60, rotate=-4, font=\comicmono\footnotesize, text width=3.9cm]
+       at (-3.3,-8.25)
+       {\$ git merge SHOE EARS\\0 merge conflicts \texttwemoji{exploding head}};
+
+  % glødende DP-tabel med merge-stien
+  \begin{scope}[shift={(0.75,-4.85)}, x=0.55cm, y=-0.55cm]
+    \fill[nightBox, rounded corners=5pt, drop shadow={opacity=.45}] (-1.25,-1.25) rectangle (5.15,5.15);
+    \draw[neonCyan, line width=1.2pt, rounded corners=5pt] (-1.25,-1.25) rectangle (5.15,5.15);
+    \foreach \L [count=\k] in {E,A,R,S}
+      \node[text=earsCol!60!white, font=\bfseries\scriptsize] at (\k+0.5,-0.7) {\L};
+    \foreach \L [count=\k] in {S,H,O,E}
+      \node[text=shoeCol!70!white, font=\bfseries\scriptsize] at (-0.7,\k+0.5) {\L};
+    \node[text=white, font=\bfseries\scriptsize] at (-0.7,-0.7) {$M$};
+    \foreach \w/\o in {11pt/.15, 7pt/.3, 3pt/1}
+      \draw[neonPink, line width=\w, opacity=\o, line cap=round, line join=round]
+        (0.5,0.5) -- (0.5,1.5) -- (2.5,1.5) -- (2.5,3.5) -- (4.5,3.5) -- (4.5,4.5);
+    \foreach \row [count=\i from 0] in {{T,F,F,F,F},{T,T,T,F,F},{F,F,T,F,F},{F,F,T,T,T},{F,F,F,F,T}}{
+      \foreach \v [count=\j from 0] in \row {
+        \if T\v
+          \node[circle, fill=neonLime, minimum size=4mm, inner sep=0pt,
+                font=\bfseries\tiny] at (\j+0.5,\i+0.5) {T};
+        \else
+          \node[text=white, opacity=.45, font=\tiny] at (\j+0.5,\i+0.5) {F};
+        \fi
+      }
+    }
+    \draw[white, opacity=.25] (0,0) grid (5,5);
+  \end{scope}
+  \node[font=\scriptsize\bfseries\itshape, text=rbViolet, fill=white, rounded corners=3pt,
+        inner sep=2pt, rotate=-2] at (2.0,-8.05) {M[4,4] = TRUE. it's giving merge.};
+
   % "works on my machine"
-  \node[sticky, fill=rbPink!45, rotate=-6, text width=3.4cm] at (4.0,-5.3)
+  \node[sticky, fill=rbPink!45, rotate=-6, text width=3.2cm] at (6.1,-5.15)
        {\bfseries It works on\\my machine \texttwemoji{person shrugging}};
 
   % O(nm) go brrr
-  \node[sticky, fill=rbGreen!45, rotate=7, text width=3.3cm] at (8.1,-6.5)
+  \node[sticky, fill=rbGreen!45, rotate=7, text width=2.9cm] at (8.7,-6.55)
        {\bfseries $O(nm)$\\go brrr \texttwemoji{fire}\texttwemoji{fire}};
 
   % binær-joke
-  \node[sticky, fill=rbOrange!45, rotate=4, text width=4.6cm, font=\footnotesize]
-       at (4.4,-7.6)
+  \node[sticky, fill=rbOrange!45, rotate=4, text width=4.2cm, font=\footnotesize]
+       at (6.2,-7.7)
        {There are \textbf{10} kinds of people: those who understand binary and those
         who don't. \texttwemoji{nerd face}};
 
-  % git merge
-  \node[sticky, fill=skyTop!60, rotate=-4, font=\comicmono\footnotesize, text width=4.1cm]
-       at (-2.1,-8.65)
-       {\$ git merge SHOE EARS\\0 merge conflicts \texttwemoji{exploding head}};
+  % Ohio
+  \node[rounded rectangle, fill=rbRed, text=white, draw=black, line width=1pt,
+        font=\bfseries\scriptsize, rotate=7, drop shadow={opacity=.4}]
+    at (8.7,-9.05) {Ohio-level $\land$ and $\lor$};
+
+  % søhest (z = SEAHORSE, selvfølgelig)
+  \begin{scope}[shift={(-7.0,-9.0)}, scale=.45, rotate=-8]
+    \shade[top color=neonLime, bottom color=rbGreen!70!black, draw=black, line width=1pt]
+      (0,0) .. controls (1.2,0.2) and (1.4,1.6) .. (0.6,2.2)
+      .. controls (1.3,2.5) and (1.7,3.4) .. (0.9,3.9)
+      -- (2.0,4.3) -- (2.05,3.85) -- (1.0,3.45)
+      .. controls (0.3,3.2) and (-0.2,2.8) .. (-0.3,2.0)
+      .. controls (-0.5,1.0) and (-0.9,0.2) .. (-0.6,-0.8)
+      .. controls (-0.4,-1.6) and (0.4,-1.8) .. (0.5,-1.2)
+      .. controls (0.55,-0.85) and (0.1,-0.75) .. (0.0,-1.0)
+      .. controls (-0.1,-0.5) and (-0.3,-0.2) .. (0,0);
+    \fill[white] (0.75,3.55) circle (.17);
+    \fill[black] (0.79,3.57) circle (.08);
+    \fill[rbOrange, opacity=.9] (-0.3,1.2) .. controls (-1.1,1.6) and (-1.1,0.6) .. (-0.45,0.5) -- cycle;
+  \end{scope}
+  \node[ellipse callout, fill=white, draw=black, font=\tiny\bfseries,
+        callout absolute pointer={(-6.55,-7.45)}] at (-5.7,-6.95) {I am z};
 
   % ------------------------------------------------------------ forfattere + dato
   \node[fill=white, draw=black, line width=1.5pt, rounded corners=8pt,
         drop shadow={opacity=0.4}, align=center, inner sep=8pt, rotate=-1]
-       (auth) at (3.3,-9.75)
-       {\small\bfseries\rainbowtext{The team behind the masterpiece}\\[2pt]
-        \footnotesize\begin{tabular}{c}\@author\end{tabular}\\[4pt]
+       (auth) at (3.4,-9.95)
+       {\small\bfseries\rainbowtext{The team behind the masterpiece}\\[-1pt]
+        \tiny\bfseries\color{rbViolet} certified string mergers (not a cult)\\[2pt]
+        \footnotesize\color{black}\begin{tabular}{c}\@author\end{tabular}\\[4pt]
         \texttwemoji{spiral calendar}\ \small\bfseries\@date};
 
   % ------------------------------------------------------------ vej + dieselbiler
@@ -448,8 +559,8 @@
   % regnbue-spor bag den røde bil
   \foreach \c [count=\k] in {rbRed,rbOrange,rbYellow,rbGreen,rbBlue,rbIndigo,rbViolet}
     {\fill[\c] (-10.6,-11.75-0.11*\k) rectangle (-6.8,-11.86-0.11*\k);}
-  \pic[scale=1.15] at (-4.3,-12.15) {diesel=rbRed};
-  \pic[scale=1.0]  at (5.7,-13.55)  {diesel=rbBlue};
+  \def\smokepuffs{16}\pic[scale=1.15] at (-4.3,-12.15) {diesel=rbRed};
+  \def\smokepuffs{9}\pic[scale=1.0]  at (5.7,-13.55)  {diesel=rbBlue};
   \node at (9.0,-11.0) {\emo[1.4cm]{fuel pump}};
   \node[font=\scriptsize\bfseries, fill=white, draw=black, rounded corners=2pt, rotate=-5]
        at (8.75,-10.1) {Diesel: 13.37 DKK/L};
@@ -462,14 +573,13 @@
   % ekstra emojis til de tomme pletter
   \node[rotate=12]  at (-9.8,-3.0) {\emo[0.8cm]{laptop}};
   \node[rotate=-12] at (9.8,-3.3)  {\emo[0.8cm]{hot beverage}};
-  \node[rotate=8]   at (-9.4,-9.3) {\emo[0.8cm]{star-struck}};
-  \node[rotate=-10] at (-5.0,-9.6) {\emo[0.75cm]{clown face}};
+  \node[rotate=8]   at (-9.5,-9.0) {\emo[0.7cm]{star-struck}};
   \node at (-9.8,3.0) {\emo[0.7cm]{crown}};
+  \node at (-4.2,-9.75) {\emo[0.6cm]{clown face}};
   \node at (9.8,3.2)  {\emo[0.7cm]{moai}};
 
   \end{scope}
 \end{tikzpicture}
-\makeatother
 \null
 \newpage
 \endgroup
