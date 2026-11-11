@@ -331,7 +331,8 @@ TSWLatexianTemp*
 #*Notes.bib
 
 
+# build output
 *.pdf
-*.tmp
-*/*.tmp
 
+# latex-pro writes these next to the document while a block is typeset
+*.tmp

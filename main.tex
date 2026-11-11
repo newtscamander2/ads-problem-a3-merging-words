@@ -68,9 +68,9 @@ We let M[i,j] denote the boolean value that is true if and only if $z_1 z_2 ... 
 test
 \begin{equation}
 	M[i,j] = \begin{cases}
-		true                                                              & \text{if } i=0 \land j=0   \\
-		z_j = y_j \land M[0,j-1] \                                        & \text{if } i=0 \land j > 0 \\
-		z_i = x_i \land M[i-1,0] \                                        & \text{if } i>0 \land j = 0 \\
+		true                                                               & \text{if } i=0 \land j=0   \\
+		z_j = y_j \land M[0,j-1] \                                         & \text{if } i=0 \land j > 0 \\
+		z_i = x_i \land M[i-1,0] \                                         & \text{if } i>0 \land j = 0 \\
 		(z_{i+j} = y_j \land M[i,j-1]) \lor (z_{i+j} = x_i \land M[i-1,j]) & \text{if } i>0 \land j > 0
 	\end{cases}
 	\label{piecewise}
@@ -194,7 +194,7 @@ Here they use the idea of storing another array \variable{B} in order to
 
 	//Track B
 	if M[i,j] == true then
-		B[i] = true;
+	B[i] = true;
 	end
 
 	return M[i,j]
@@ -205,7 +205,7 @@ Here they use the idea of storing another array \variable{B} in order to
 
 	//Track B
 	if M[i,j] == true and z_{i+j} == x_i then
-		B[i+j] = true;
+	B[i+j] = true;
 	end
 
 	return M[i,j]
@@ -213,15 +213,15 @@ Here they use the idea of storing another array \variable{B} in order to
 	end
 
 	function Print-Merge(x, y,z)
-		Is-Merge-Constituted(M, B, x, y, z, x_length, y_length)
+	Is-Merge-Constituted(M, B, x, y, z, x_length, y_length)
 
-		//Go through B and print.
-		for n = 1 -> z_length do
-			if B[n] then
-				//Print 
-				print(n)
-			end
-		end
+	//Go through B and print.
+	for n = 1 -> z_length do
+	if B[n] then
+	//Print
+	print(n)
+	end
+	end
 
 	end
 \end{pseudo}
