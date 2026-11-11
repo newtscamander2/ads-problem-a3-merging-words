@@ -1,8 +1,8 @@
 	function Is-Merge-Constituted(M, B, x, y, z, i, j)
-		if i == 0 and j == 0 then
-		M[i,j] = true
+	if i == 0 and j == 0 then
+	M[i,j] = true
 
-		return true
+	return true
 	end
 
 	for a = 0 -> j //Bottom up programming :)
