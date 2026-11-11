@@ -147,6 +147,13 @@ Text with \method{merge} in it.
 % [from=java]: Java in a pseudocode block, printed as pseudocode
 \pseudo[from=java]{code/java.java}
 \lpsamefile{from=java prints Java as pseudocode}{\pseudotmp}{code/java-expected.txt}
+% Java that leaves the braces out: a control line governs the one statement
+% after it, so the end lines can still be worked out.  A statement that runs
+% on over two lines ("... ||") is one statement, and its second line is
+% indented a step further.
+\pseudo[from=java]{code/java-nobraces.java}
+\lpsamefile{from=java closes a block with no braces}{\pseudotmp}{code/java-nobraces-expected.txt}
+
 % from= is per block: the next one is pseudocode again
 \pseudo{code/indent.txt}
 \lpsamefile{from=java does not stay set for the next block}{\pseudotmp}{code/indent-expected.txt}
