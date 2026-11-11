@@ -1,7 +1,52 @@
 function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
+    if i == 0 and j == 0 then
+        M[i,j] = true
 
+        return true
+    end
+
+    for a = 0 $\to$ j //Bottom up programming :)
+        for b = 0 $\to$ i
+            $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, b, a)
+        end
+    end
+
+    if i == 0 and j $>$ 0 then
+        M[i,j] = $\latexprocodemath{z}_{\latexprocodemath{j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and $\latexprocodemath{z}_{\latexprocodemath{j}}$ == M[0,j-1]
+
+        return M[i,j]
+    end
+
+    if i $>$ 0 and j == 0 then
+        M[i,j] = $\latexprocodemath{z}_{\latexprocodemath{i}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and $\latexprocodemath{z}_{\latexprocodemath{i}}$ == M[i-1,0]
+
+        if M[i,j] == true then
+            B[i] = true;
+        end
+
+        return M[i,j]
+    end
+
+    if i $>$ 0 and j $>$ 0 then
+        M[i,j] = ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and $\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == M[i,j-1]) and ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and $\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == M[i-1,j])
+
+        if M[i,j] == true then
+            B[i] = true;
+        end
+
+        return M[i,j]
+    end
 end
 
-function $\mbox{\latexprohyphenname{Print-Merge}}$(M, B) {
+function $\mbox{\latexprohyphenname{Print-Merge}}$(x, y,z)
+    $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, $\latexprocodemath{x}_{\latexprocodemath{length}}$, $\latexprocodemath{y}_{\latexprocodemath{length}}$)
 
-}
+    //Go through B and print.
+    for i = 1 $\to$ $\latexprocodemath{x}_{\latexprocodemath{length}}$ do
+        if B[i] then
+            //Print
+            print(i)
+        end
+    end
+
+end

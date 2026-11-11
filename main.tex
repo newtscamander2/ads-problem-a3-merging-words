@@ -171,12 +171,57 @@ Here they use the idea of storing another array \variable{B} in order to store i
 
 \begin{pseudo}[span]
 	function Is-Merge-Constituted(M, B, x, y, z, i, j)
+		if i == 0 and j == 0 then
+		M[i,j] = true
 
+		return true
 	end
 
-	function Print-Merge(M, B) {
+	for a = 0 -> j //Bottom up programming :)
+	for b = 0 -> i
+	Is-Merge-Constituted(M, B, x, y, z, b, a)
+	end
+	end
 
-	}
+	if i == 0 and j > 0 then
+	M[i,j] = z_j == y_j and z_j == M[0,j-1]
+
+	return M[i,j]
+	end
+
+	if i > 0 and j == 0 then
+	M[i,j] = z_i == x_i and z_i == M[i-1,0]
+
+	if M[i,j] == true then
+		B[i] = true;
+	end
+
+	return M[i,j]
+	end
+
+	if i > 0 and j > 0 then
+	M[i,j] = (z_{i+j} == y_j and z_{i+j} == M[i,j-1]) and (z_{i+j} == x_i and z_{i+j} == M[i-1,j])
+
+	if M[i,j] == true then
+		B[i] = true;
+	end
+
+	return M[i,j]
+	end
+	end
+
+	function Print-Merge(x, y,z)
+		Is-Merge-Constituted(M, B, x, y, z, x_length, y_length)
+
+		//Go through B and print.
+		for i = 1 -> x_length do
+			if B[i] then
+				//Print 
+				print(i)
+			end
+		end
+
+	end
 \end{pseudo}
 
 \end{document}
