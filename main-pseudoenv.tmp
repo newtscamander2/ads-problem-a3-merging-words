@@ -1,6 +1,6 @@
 	function Is-Merge-Constituted(M, B, x, y, z, i, j)
 	if x_length + z_length != z_length then //If the lengths of x and y are not the same, then it cannot be a merge of the two...
-		return false
+	return false
 	end
 
 	if i == 0 and j == 0 then
@@ -8,9 +8,9 @@
 	return true
 	end
 
-	for a = 0 -> j-1 //Bottom up programming :)
-	for b = 0 -> i-1
-	Is-Merge-Constituted(M, B, x, y, z, b, a)
+	for a = 0 to j-1 do //Bottom up programming :)
+	for b = 0 to i-1 do
+		Is-Merge-Constituted(M, B, x, y, z, b, a)
 	end
 	end
 
@@ -44,7 +44,6 @@
 
 	function Print-Merge(x, y,z)
 	Is-Merge = Is-Merge-Constituted(M, B, x, y, z, x_length, y_length)
-
 
 	//Go through B and print if it is seen as a merge.
 	if Is-Merge then

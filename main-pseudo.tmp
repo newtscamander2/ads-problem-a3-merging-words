@@ -8,6 +8,8 @@ function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
         return true
     end
 
+    for a = 0 to j-1 do //Bottom up programming :)
+        for b = 0 to i-1 do
     for a = 0 -> j-1 //Bottom up programming :)
         for b = 0 -> i-1
             $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, b, a)
@@ -44,7 +46,6 @@ end
 
 function $\mbox{\latexprohyphenname{Print-Merge}}$(x, y,z)
     $\mbox{\latexprohyphenname{Is-Merge}}$ = $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, $\latexprocodemath{x}_{\latexprocodemath{length}}$, $\latexprocodemath{y}_{\latexprocodemath{length}}$)
-
 
     //Go through B and print if it is seen as a merge.
     if $\mbox{\latexprohyphenname{Is-Merge}}$ then
