@@ -141,8 +141,8 @@ The different if-statements are made from the piecewise-function given in \booke
 	return true
 	end
 
-	for a = 0 -> j-1 //Bottom up programming :)
-	for b = 0 -> i-1
+	for a = 0 to j-1 do //Bottom up programming :)
+	for b = 0 to i-1 do
 	Is-Merge(M, x, y, z, b, a)
 	end
 	end
@@ -191,9 +191,9 @@ Furthermore, if both $i>0$ and $j>0$ we still modify $M[i,j]$ and
 	return true
 	end
 
-	for a = 0 -> j-1 //Bottom up programming :)
-	for b = 0 -> i-1
-	Is-Merge-Constituted(M, B, x, y, z, b, a)
+	for a = 0 to j-1 do //Bottom up programming :)
+	for b = 0 to i-1 do
+		Is-Merge-Constituted(M, B, x, y, z, b, a)
 	end
 	end
 
@@ -228,7 +228,6 @@ Furthermore, if both $i>0$ and $j>0$ we still modify $M[i,j]$ and
 	function Print-Merge(x, y,z)
 	Is-Merge = Is-Merge-Constituted(M, B, x, y, z, x_length, y_length)
 
-
 	//Go through B and print if it is seen as a merge.
 	if Is-Merge then
 	for n = 1 -> z_length do
@@ -241,5 +240,7 @@ Furthermore, if both $i>0$ and $j>0$ we still modify $M[i,j]$ and
 
 	end
 \end{pseudo}
+
+\qr*{https://www.roblox.com}
 
 \end{document}
