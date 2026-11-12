@@ -167,14 +167,19 @@ The \method{Is-Merge} function runs through every letter in both \variable{x} an
 \section*{c)}
 To also report the indexes of \variable{z} that constitute to \variable{x} we can use the idea from the book in finding the longest common subsequence.
 
-Here they use the idea of storing another array \variable{B} in order to 
+Here they use the idea of storing another array \variable{B} in order to
 %BASICALLY JUST WRITE WHAT HAPPENS IN THE PSEUDO CODE INTO
+
+In the pseudo code we have defined a function called \method{Is-Merge-Constituted}. It is a modification of \method{Is-Merge} but with some important differences. Essentially, \method{Is-Merge} is extended to also report the indexes of z that constitute the subsequence of equal to x.
+
+As it can be seen below the recursive call is changed to \method{Is-Merge-Constituted} instead of \method{Is-Merge}. We create a new array called B that is initially empty. When $i>0$ and $j==0$ we modify $M[i,j]$ as we did before but we also check that if $M[i,j]==true$ then we set $M[i,j]$ to true as well!
+
+Furthermore, if both $i>0$ and $j>0$ we still modify $M[i,j]$ and
 
 \begin{pseudo}[span]
 	function Is-Merge-Constituted(M, B, x, y, z, i, j)
 	if i == 0 and j == 0 then
 	M[i,j] = true
-
 	return true
 	end
 

@@ -1,7 +1,6 @@
 	function Is-Merge-Constituted(M, B, x, y, z, i, j)
 	if i == 0 and j == 0 then
 	M[i,j] = true
-
 	return true
 	end
 
@@ -21,7 +20,7 @@
 
 	//Track B
 	if M[i,j] == true then
-		B[i] = true;
+	B[i] = true;
 	end
 
 	return M[i,j]
@@ -32,7 +31,7 @@
 
 	//Track B
 	if M[i,j] == true and z_{i+j} == x_i then
-		B[i+j] = true;
+	B[i+j] = true;
 	end
 
 	return M[i,j]
@@ -40,14 +39,14 @@
 	end
 
 	function Print-Merge(x, y,z)
-		Is-Merge-Constituted(M, B, x, y, z, x_length, y_length)
+	Is-Merge-Constituted(M, B, x, y, z, x_length, y_length)
 
-		//Go through B and print.
-		for n = 1 -> z_length do
-			if B[n] then
-				//Print
-				print(n)
-			end
-		end
+	//Go through B and print.
+	for n = 1 -> z_length do
+	if B[n] then
+	//Print
+	print(n)
+	end
+	end
 
 	end
