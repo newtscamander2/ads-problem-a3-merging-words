@@ -1,4 +1,8 @@
 function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
+    if $\latexprocodemath{x}_{\latexprocodemath{length}}$ + $\latexprocodemath{z}_{\latexprocodemath{length}}$ $\neq$ $\latexprocodemath{z}_{\latexprocodemath{length}}$ then //If the lengths of x and y are not the same, then it cannot be a merge of the two...
+        return false
+    end
+
     if i == 0 and j == 0 then
         M[i,j] = true
         return true
@@ -39,13 +43,16 @@ function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
 end
 
 function $\mbox{\latexprohyphenname{Print-Merge}}$(x, y,z)
-    $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, $\latexprocodemath{x}_{\latexprocodemath{length}}$, $\latexprocodemath{y}_{\latexprocodemath{length}}$)
+    $\mbox{\latexprohyphenname{Is-Merge}}$ = $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, $\latexprocodemath{x}_{\latexprocodemath{length}}$, $\latexprocodemath{y}_{\latexprocodemath{length}}$)
 
-    //Go through B and print.
-    for n = 1 $\to$ $\latexprocodemath{z}_{\latexprocodemath{length}}$ do
-        if B[n] then
-            //Print
-            print(n)
+
+    //Go through B and print if it is seen as a merge.
+    if $\mbox{\latexprohyphenname{Is-Merge}}$ then
+        for n = 1 $\to$ $\latexprocodemath{z}_{\latexprocodemath{length}}$ do
+            if B[n] then
+                //Print
+                print(n)
+            end
         end
     end
 
