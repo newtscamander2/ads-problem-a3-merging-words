@@ -129,6 +129,8 @@ To dynamically find out if the word \variable{z} is the merge of two words \vari
 
 The different if-statements are made from the piecewise-function given in \bookeq{\ref{piecewise}}.
 
+We use dynamic programming to go bottom up and calculate the required values for determining our end statement. All elements from left to right get filled out, like in the LCS algorithm in CLRS.
+
 \begin{pseudo}[span]
 	function Is-Merge(M, x, y, z, i, j)
 	if x_length + z_length != z_length then
@@ -242,5 +244,6 @@ At the end we have a \method{print-merge} function that first stores the result 
 
 	end
 \end{pseudo}
+
 
 \end{document}
