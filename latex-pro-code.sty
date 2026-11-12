@@ -16,7 +16,7 @@
 %   \python[edge=zigzag]{f.py}     the look of the edges where a page break
 %                                  splits the box: wave (default), zigzag,
 %                                  scallop, torn, fade, dashed, scissors,
-%                                  continued, straight
+%                                  stitches, continued, straight
 %   \latexprocodesetup{edge=torn}  default options of every later block;
 %                                  also \usepackage[edge=torn]{latex-pro}
 %   \begin{pythoncode} ... \end{pythoncode}   Python typed in the .tex file
@@ -28,23 +28,25 @@
 %                                  pseudocode block
 %   \pseudo{algo.txt}              include a pseudocode .txt file: keywords
 %                                  (if/then/else/for/while/repeat/return/end
-%                                  ...) highlighted, \geq \leq \gets <= != ... as
-%                                  maths, and indented automatically
+%                                  ...) highlighted, operators written the
+%                                  programmer way (= == != <= >=), TeX
+%                                  commands (\alpha, \geq) as maths, and
+%                                  indented automatically
 %   \pseudo[caption=..]{f.txt}  \pseudo*{f.txt}   same options as \python
 %   \python[filename=false]{f.py}  no file name on the right of the header
 %                                  (also \pseudo; caption=.. replaces it)
 %   \begin{pseudo} ... \end{pseudo}   pseudocode typed in the .tex file,
 %                                  same handling as \pseudo (also pseudo*,
 %                                  and the longer name pseudocode)
-%   \pseudo[from=java]{Merge.java}  Java printed as pseudocode: types and
-%                                  modifiers dropped, braces turned into
-%                                  then/do/end, Java operators written the
-%                                  pseudocode way (also \begin{pseudo}[from=java])
+%   \pseudo[from=java]{Merge.java}  Java printed as Python-style pseudocode:
+%                                  types and modifiers dropped, braces
+%                                  turned into a colon and indentation
+%                                  (also \begin{pseudo}[from=java])
 %   \pseudoindentfalse             keep the file's own indentation
 %   Restyle with \lstdefinestyle{latexpro-python}{...} (or latexpro-pseudo).
 %
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
-\ProvidesPackage{latex-pro-code}[2026/11/05 v0.7 latex-pro: code listings]
+\ProvidesPackage{latex-pro-code}[2026/11/12 v0.8 latex-pro: code listings]
 
 \RequirePackage{listings}
 \RequirePackage{amstext}
@@ -196,7 +198,7 @@
       overlay={\latexpro@edge{south}{1}\latexpro@edge{north}{-1}}},
     extras last={sharp corners=north, overlay={\latexpro@edge{north}{-1}}}}}%
   % extra room between the code and a split edge, for the styles that draw
-  % over it (fade, continued)
+  % over it (fade, stitches, continued)
   \tcbset{latexpro-code-edge/.code={%
     \edef\latexpro@tmp{\csname latexpro@edgesep@\latexpro@edgestyle\endcsname}%
     \pgfkeysalso{topsep at break=\latexpro@tmp, bottomsep at break=\latexpro@tmp}}}%
@@ -219,6 +221,7 @@
 %   fade       the box fades into the page
 %   dashed     a dashed line, like a perforation
 %   scissors   a dashed line with scissors on it (cut here)
+%   stitches   a seam: a line with cross stitches sewn over it
 %   continued  a straight open edge with "continued on next page" /
 %              "continued from previous page"
 %   straight   a straight open edge, nothing drawn
@@ -240,6 +243,8 @@
 \newcommand\latexprowavelength{14pt}
 % the fade style: how tall the fade is
 \newcommand\latexprofadeheight{14pt}
+% the stitches style: half the height of one cross stitch
+\newcommand\latexprostitchsize{2.6pt}
 % the continued style: the labels at the two edges of a page break
 \newcommand\latexprocontinuedtext{continued on next page}
 \newcommand\latexprocontinuedfromtext{continued from previous page}
@@ -253,6 +258,7 @@
 \def\latexpro@edgesep@fade{6pt}
 \def\latexpro@edgesep@dashed{0pt}
 \def\latexpro@edgesep@scissors{0pt}
+\def\latexpro@edgesep@stitches{3pt}
 \def\latexpro@edgesep@continued{6pt}
 \def\latexpro@edgesep@straight{0pt}
 % profiles of the cut styles (t in pt, period \latexpro@wavel), and the
@@ -336,6 +342,38 @@
       at ([xshift=18pt, yshift=1pt]frame.#1 west)
       {\latexpro@scissors};
   \fi}
+% stitches: the edge is a seam. The border line is drawn where the border
+% would be, with a row of cross stitches sewn over it, half of each inside
+% the box and half outside. The stitches are \latexprowavelength apart
+% (times length=x), centred on the box, so the row at the bottom of one
+% part and the row at the top of the next sit at the same places.
+% \latexprostitchsize is half the height of a stitch.
+\newcommand\latexpro@edge@stitches[2]{%
+  \pgfextractx\latexpro@wavedim{\pgfpointanchor{frame}{east}}%
+  \pgfextractx\dimen@{\pgfpointanchor{frame}{west}}%
+  \advance\latexpro@wavedim-\dimen@
+  \pgfmathsetmacro\latexpro@wavewn{\latexpro@wavedim}%
+  \pgfmathsetmacro\latexpro@waveh{\latexprostitchsize}%
+  \pgfmathsetmacro\latexpro@wavel{\latexprowavelength*\latexpro@wavefactor}%
+  % one stitch per period, at least half a period away from the corners
+  \pgfmathtruncatemacro\latexpro@waven{%
+    max(0,floor((\latexpro@wavewn-\latexpro@wavel)/\latexpro@wavel))}%
+  \pgfmathsetmacro\latexpro@waveoff{%
+    (\latexpro@wavewn-\latexpro@waven*\latexpro@wavel)/2}%
+  \draw[latexpro@codeframe, line width=0.6pt]
+    ([yshift=#2*0.3pt]frame.#1 west) -- ([yshift=#2*0.3pt]frame.#1 east);
+  \foreach \latexpro@stitch in {0,...,\latexpro@waven}{%
+    \pgfmathsetmacro\latexpro@wavex{%
+      \latexpro@waveoff+\latexpro@stitch*\latexpro@wavel}%
+    \draw[latexpro@headerinfo, line width=0.7pt, line cap=round]
+      ([xshift={(\latexpro@wavex-0.8*\latexpro@waveh)*1pt},
+        yshift=-\latexpro@waveh pt]frame.#1 west)
+      -- ([xshift={(\latexpro@wavex+0.8*\latexpro@waveh)*1pt},
+           yshift=\latexpro@waveh pt]frame.#1 west)
+      ([xshift={(\latexpro@wavex-0.8*\latexpro@waveh)*1pt},
+        yshift=\latexpro@waveh pt]frame.#1 west)
+      -- ([xshift={(\latexpro@wavex+0.8*\latexpro@waveh)*1pt},
+           yshift=-\latexpro@waveh pt]frame.#1 west);}}
 % continued: a label on the right, just inside the edge
 \newcommand\latexpro@edge@continued[2]{%
   \node[anchor=\ifnum#2>0 south east\else north east\fi, inner sep=0pt,
@@ -348,11 +386,33 @@
 % in ordinary code (\lst@Pmode), never in a comment or a string
 \newcommand\latexpro@keywordcolor{%
   \ifnum\lst@mode=\lst@Pmode\color{latexpro@keyword}\fi}
+% pseudocode operators (see the latexpro-pseudo style): = := assign and are
+% in the keyword colour, == != <= >= compare and are in the text colour.
+% In a comment or a string they keep the colour of what they are in.
+\newcommand\latexpro@assignop[1]{{\latexpro@keywordcolor #1}}
+\newcommand\latexpro@compareop[1]{%
+  {\ifnum\lst@mode=\lst@Pmode\color{latexpro@text}\fi #1}}
 % the code font for listings: listings prints * - < > \ _ as plain
 % characters only when the font is \ttdefault (otherwise it uses centred or
 % maths symbols, which sit wrong in another monospace font such as JetBrains
 % Mono), so the code font is made \ttdefault inside each listing
 \newcommand\latexpro@listingfont{\latexprocodefont\edef\ttdefault{\f@family}}
+% pdflatex: print the usual non-ASCII letters in code and comments. A
+% literate= replaces the whole list, so the pseudocode style, which adds
+% its operators to it, is defined here from the same list.
+\def\latexpro@tmp#1{%
+  \lstdefinestyle{latexpro-literate}{literate=#1}%
+  \lstdefinestyle{latexpro-pseudo-literate}{literate=#1
+    {=}{{\latexpro@assignop{=}}}1 {:=}{{\latexpro@assignop{:=}}}2
+    {==}{{\latexpro@compareop{==}}}2 {!=}{{\latexpro@compareop{!=}}}2
+    {<=}{{\latexpro@compareop{<=}}}2 {>=}{{\latexpro@compareop{>=}}}2}}
+\latexpro@tmp{
+    {æ}{{\ae}}1 {ø}{{\o}}1 {å}{{\aa}}1 {Æ}{{\AE}}1 {Ø}{{\O}}1 {Å}{{\AA}}1
+    {ä}{{\"a}}1 {ö}{{\"o}}1 {ü}{{\"u}}1 {Ä}{{\"A}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1
+    {é}{{\'e}}1 {è}{{\`e}}1 {ß}{{\ss}}1
+    {—}{{-{}-}}1 {–}{{-}}1 {“}{{``}}1 {”}{{''}}1 {‘}{{`}}1 {’}{{'}}1
+    {…}{{\ldots}}1 {×}{{$\times$}}1 {·}{{$\cdot$}}1
+}
 % the parts every code style shares
 \lstdefinestyle{latexpro-code}{
   basicstyle=\latexpro@listingfont\small\color{latexpro@text},
@@ -378,14 +438,8 @@
   columns=fullflexible,
   keepspaces=true,
   upquote=true,
-  % pdflatex: print the usual non-ASCII letters in code and comments
   extendedchars=true,
-  literate=
-    {æ}{{\ae}}1 {ø}{{\o}}1 {å}{{\aa}}1 {Æ}{{\AE}}1 {Ø}{{\O}}1 {Å}{{\AA}}1
-    {ä}{{\"a}}1 {ö}{{\"o}}1 {ü}{{\"u}}1 {Ä}{{\"A}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1
-    {é}{{\'e}}1 {è}{{\`e}}1 {ß}{{\ss}}1
-    {—}{{-{}-}}1 {–}{{-}}1 {“}{{``}}1 {”}{{''}}1 {‘}{{`}}1 {’}{{'}}1
-    {…}{{\ldots}}1 {×}{{$\times$}}1 {·}{{$\cdot$}}1
+  style=latexpro-literate,
 }
 
 % ---------------------------------------------------------------------------
@@ -442,7 +496,8 @@
     length   .code:n     = { \tl_set:Nn \latexpro@wavefactor {#1} } ,
     % [edge=zigzag]: the look of the edges where the box is split
     edge     .choices:nn =
-      { wave , zigzag , scallop , torn , fade , dashed , scissors , continued , straight }
+      { wave , zigzag , scallop , torn , fade , dashed , scissors , stitches ,
+        continued , straight }
       { \tl_set_eq:NN \latexpro@edgestyle \l_keys_choice_tl } ,
   }
 % \latexprocodesetup{edge=zigzag, length=2}: the default options of every
@@ -703,9 +758,13 @@
 % ---------------------------------------------------------------------------
 % \pseudo[options]{file.txt} reads a plain-text pseudocode file and
 %  * indents it by its keywords (lines after function/if..then/for/while/
-%    repeat/else/..do are indented, end/else/until lines step back out),
+%    repeat/else/..do or ending in a colon are indented, end/else/until
+%    lines step back out),
+%  * prints operators the programmer way: = and := assign (keyword colour),
+%    == != <= >= < > compare (text colour); nothing is turned into an
+%    arrow or another maths symbol,
 %  * prints TeX commands such as \geq, \leq, \neq, \gets, \in, \alpha_i
-%    as maths, and <=, >=, !=, <-, -> as the symbols,
+%    as maths (what you type as TeX is still TeX),
 %  * colours keywords, function names and // comments.
 % A line that already holds $...$ is left for listings' mathescape.
 % \pseudo* drops the line numbers.  \pseudoindentfalse keeps the file's own
@@ -716,14 +775,16 @@
     elseif,elif,end,endif,endfor,endwhile,endfunction,endprocedure,for,
     foreach,each,to,downto,by,step,do,in,while,repeat,until,loop,break,
     continue,and,or,not,xor,let,var,of,from,begin,goto,switch,case,default},
-  % operators share the keyword colour; "/" is coloured by the
-  % pre-processing instead (as an otherkeyword it would stop listings from
-  % seeing // and /* as the start of a comment)
-  otherkeywords={:=,==,=,+,-,\%},
-  morekeywords=[2]{print,input,output,call,length,len,max,min,abs,swap},
+  % arithmetic operators share the keyword colour; "/" and "*" are coloured
+  % by the pre-processing instead (as otherkeywords they would stop
+  % listings from seeing // and /* as the start of a comment). = := == !=
+  % <= >= are printed by the literate list of the latexpro-pseudo style: as
+  % otherkeywords "=" and "==" could not have different colours.
+  otherkeywords={+,-,\%},
+  morekeywords=[2]{print,input,output,call,length,len,max,min,abs,swap,range},
   morekeywords=[3]{true,false,null,nil,none},
   % the name after these is coloured as a function name
-  morekeywords=[4]{function,procedure,algorithm},
+  morekeywords=[4]{function,procedure,algorithm,def},
   morecomment=[l]{//},
   morecomment=[s]{/*}{*/},
   morestring=[b]",
@@ -732,6 +793,7 @@
   style=latexpro-code,
   language=latexpro-pseudo,
   mathescape=true,
+  style=latexpro-pseudo-literate,
 }
 \newif\ifpseudoindent \pseudoindenttrue
 \ExplSyntaxOn
@@ -780,7 +842,7 @@
   }
 
 % maths in a line that has no $...$ of its own:
-%   a_i -> $a_i$,  \geq -> $\geq$,  <= >= != <- -> < > * -> symbols
+%   a_i -> $a_i$,  \geq -> $\geq$.  Operators stay as they are typed.
 \str_new:N \l__latexpro_pseudo_code_str
 \str_new:N \l__latexpro_pseudo_comment_str
 \seq_new:N \l__latexpro_pseudo_parts_seq
@@ -807,6 +869,10 @@
         \regex_replace_all:nnN
           { \b ([A-Za-z][A-Za-z0-9]* (?: - [A-Za-z][A-Za-z0-9]* )+ ) }
           { \$ \\mbox \{ \\latexprohyphenname \{ \1 \} \} \$ } \l__latexpro_pseudo_code_str
+        % "*" and "/" are multiplication and division: keyword colour, like
+        % + and -, and the characters of the code font
+        \regex_replace_all:nnN { \* }
+          { \$ \\mbox \{ \\color \{ latexpro@keyword \} * \} \$ } \l__latexpro_pseudo_code_str
         \regex_replace_all:nnN { / }
           { \$ \{ \\color \{ latexpro@keyword \} / \} \$ } \l__latexpro_pseudo_code_str
         \regex_replace_all:nnN { @@latexpro@open@@ } { /* } \l__latexpro_pseudo_code_str
@@ -826,13 +892,8 @@
         \regex_replace_all:nnN
           { \b ([A-Za-z]) _ (?: \{([^\}]*)\} | ([A-Za-z0-9]+) ) }
           { \$ \\latexprocodemath\{\1\} _ \{ \\latexprocodemath\{\2\3\} \} \$ } #1
-        \regex_replace_all:nnN { <= } { \$\\leq\$ } #1
-        \regex_replace_all:nnN { >= } { \$\\geq\$ } #1
-        \regex_replace_all:nnN { != } { \$\\neq\$ } #1
-        \regex_replace_all:nnN { <- } { \$\\gets\$ } #1
-        \regex_replace_all:nnN { -> } { \$\\to\$ } #1
-        \regex_replace_all:nnN { ([<>]) } { \$\1\$ } #1
-        \regex_replace_all:nnN { \* } { \$\\cdot\$ } #1
+        % <= >= != < > <- -> are not touched: they are printed as typed
+        % (the literate list of the latexpro-pseudo style colours them)
   }
 % A \begin{pseudo} / \begin{pythoncode} line inside a pseudocode block means
 % an \end{pseudo} is missing above it (the block runs on into the next one).
@@ -860,27 +921,32 @@
   }
 \cs_generate_variant:Nn \msg_error:nnnn { nnVV }
 % --- from=java: Java source in a pseudo block, printed as pseudocode -------
-% A line-by-line rewrite, run before the indentation and the maths pass:
-% types and modifiers go, braces become then/do/end, Java operators become
-% their pseudocode spelling.  It is a filter, not a parser: one statement
-% per line is what it is good at.
+% A line-by-line rewrite, run before the indentation and the maths pass.
+% The result is Python-style: types and modifiers go, a block is a header
+% ending in a colon with its body indented under it, and nothing closes it
+% (a "}" becomes the marker @@lpjend@@, which steps the indentation back
+% out and prints no line).  Operators stay the programmer's: = assigns,
+% == != <= >= compare.  It is a filter, not a parser: one statement per
+% line is what it is good at.
 \str_new:N \l__latexpro_java_code_str
 \str_new:N \l__latexpro_java_comment_str
 \seq_new:N \l__latexpro_java_parts_seq
 \cs_new_protected:Npn \__latexpro_java_ops:N #1
   {
-    % == != <= >= out of the way, so the single = below is an assignment
+    % == != <= >= += out of the way of the rewrites of ! and + below
     \regex_replace_all:nnN { == } { @@lpjeq@@ } #1
     \regex_replace_all:nnN { != } { @@lpjne@@ } #1
     \regex_replace_all:nnN { <= } { @@lpjle@@ } #1
     \regex_replace_all:nnN { >= } { @@lpjge@@ } #1
+    \regex_replace_all:nnN { \+= } { @@lpjpe@@ } #1
   }
 \cs_new_protected:Npn \__latexpro_java_unops:N #1
   {
-    \regex_replace_all:nnN { @@lpjeq@@ } { = } #1
+    \regex_replace_all:nnN { @@lpjeq@@ } { == } #1
     \regex_replace_all:nnN { @@lpjne@@ } { != } #1
     \regex_replace_all:nnN { @@lpjle@@ } { <= } #1
     \regex_replace_all:nnN { @@lpjge@@ } { >= } #1
+    \regex_replace_all:nnN { \s* @@lpjpe@@ \s* } { \ +=\  } #1
   }
 \cs_new_protected:Npn \__latexpro_java_line:N #1
   {
@@ -906,79 +972,82 @@
     % --- control structures ------------------------------------------------
     \regex_replace_once:nnN
       { \A (\s*) (?: \} \s* )? else \s+ if \s* \( (.*) \) \s* \{ \s* \Z }
-      { \1else\ if\ \2\ then } #1
-    \regex_replace_once:nnN { \A (\s*) (?: \} \s* )? else \s* \{ \s* \Z } { \1else } #1
+      { \1elif\ \2: } #1
+    \regex_replace_once:nnN { \A (\s*) (?: \} \s* )? else \s* \{ \s* \Z } { \1else: } #1
     \regex_replace_once:nnN { \A (\s*) \} \s* while \s* \( (.*) \) \s* \Z }
       { \1until\ not\ (\2) } #1
-    \regex_replace_once:nnN { \A (\s*) \} \s* \Z } { \1end } #1
-    \regex_replace_once:nnN { \A (\s*) do \s* \{ \s* \Z } { \1repeat } #1
-    % for (i = a; i < b; i++)  ->  for i = a to b - 1.  l3regex has no
+    \regex_replace_once:nnN { \A (\s*) \} \s* \Z } { \1@@lpjend@@ } #1
+    \regex_replace_once:nnN { \A (\s*) do \s* \{ \s* \Z } { \1repeat: } #1
+    % for (i = a; i < b; i++)  ->  for i in range(a, b).  l3regex has no
     % backreferences, so the condition and the step are not checked against
     % the loop variable; the operator and ++/-- pick the direction.
     \regex_replace_once:nnN
       { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
         \s* \w+ \s* < \s* ([^;]*?) \s* ; [^;)]* \+\+ [^;)]* \) \s* \{? \s* \Z }
-      { \1for\ \2\ <-\ \3\ to\ \4\ -\ 1\ do } #1
+      { \1for\ \2\ in\ range(\3,\ \4): } #1
     \regex_replace_once:nnN
       { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
         \s* \w+ \s* @@lpjle@@ \s* ([^;]*?) \s* ; [^;)]* \+\+ [^;)]* \) \s* \{? \s* \Z }
-      { \1for\ \2\ <-\ \3\ to\ \4\ do } #1
+      { \1for\ \2\ in\ range(\3,\ \4\ +\ 1): } #1
     \regex_replace_once:nnN
       { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
         \s* \w+ \s* > \s* ([^;]*?) \s* ; [^;)]* -- [^;)]* \) \s* \{? \s* \Z }
-      { \1for\ \2\ <-\ \3\ downto\ \4\ +\ 1\ do } #1
+      { \1for\ \2\ in\ range(\3,\ \4,\ -1): } #1
     \regex_replace_once:nnN
       { \A (\s*) for \s* \( \s* (\w+) \s* = \s* ([^;]*?) \s* ;
         \s* \w+ \s* @@lpjge@@ \s* ([^;]*?) \s* ; [^;)]* -- [^;)]* \) \s* \{? \s* \Z }
-      { \1for\ \2\ <-\ \3\ downto\ \4\ do } #1
-    % for (x : xs)  ->  for each x in xs
+      { \1for\ \2\ in\ range(\3,\ \4\ -\ 1,\ -1): } #1
+    % range(0, n) is range(n), and counting down to 0 stops before -1
+    \regex_replace_once:nnN { range\(0,\s ([^,]*) \) : \Z } { range(\1): } #1
+    \regex_replace_once:nnN { ,\s 0 \s - \s 1 ,\s -1\) : \Z } { ,\ -1,\ -1): } #1
+    % for (x : xs)  ->  for x in xs
     \regex_replace_once:nnN
       { \A (\s*) for \s* \( \s* (\w+) \s* : \s* (.*?) \s* \) \s* \{? \s* \Z }
-      { \1for\ each\ \2\ in\ \3\ do } #1
+      { \1for\ \2\ in\ \3: } #1
     \regex_replace_once:nnN
-      { \A (\s*) if \s* \( (.*) \) \s* \{ \s* \Z } { \1if\ \2\ then } #1
+      { \A (\s*) if \s* \( (.*) \) \s* \{ \s* \Z } { \1if\ \2: } #1
     \regex_replace_once:nnN
-      { \A (\s*) if \s* \( (.*?) \) \s* (\S.*) \Z } { \1if\ \2\ then\ \3 } #1
+      { \A (\s*) if \s* \( (.*?) \) \s* ([^\s:] .* [^:]) \Z } { \1if\ \2:\ \3 } #1
     \regex_replace_once:nnN
-      { \A (\s*) while \s* \( (.*) \) \s* \{ \s* \Z } { \1while\ \2\ do } #1
+      { \A (\s*) while \s* \( (.*) \) \s* \{ \s* \Z } { \1while\ \2: } #1
     % the same without the brace: "if (x)" on a line of its own (Java that
-    % leaves the braces out).  Nothing closes such a block, so no end line
-    % can be worked out for it either.
+    % leaves the braces out); \__latexpro_java_lines:NN closes such a block
+    % after the one statement it governs.
     \regex_replace_once:nnN
-      { \A (\s*) if \s* \( (.*) \) \s* \Z } { \1if\ \2\ then } #1
+      { \A (\s*) if \s* \( (.*) \) \s* \Z } { \1if\ \2: } #1
     \regex_replace_once:nnN
-      { \A (\s*) while \s* \( (.*) \) \s* \Z } { \1while\ \2\ do } #1
+      { \A (\s*) while \s* \( (.*) \) \s* \Z } { \1while\ \2: } #1
     \regex_replace_once:nnN
-      { \A (\s*) switch \s* \( (.*) \) \s* \{ \s* \Z } { \1switch\ \2 } #1
+      { \A (\s*) switch \s* \( (.*) \) \s* \{ \s* \Z } { \1switch\ \2: } #1
     % --- a method header ----------------------------------------------------
     \regex_replace_once:nnN
       { \A (\s*) (\w[\w-]*) \s* \( (.*) \) \s* \{ \s* \Z }
-      { \1function\ \2(\3) } #1
+      { \1def\ \2(\3): } #1
     % --- operators ----------------------------------------------------------
-    \regex_replace_all:nnN { (\w+) \s* \+\+ } { \1\ <-\ \1\ +\ 1 } #1
-    \regex_replace_all:nnN { \+\+ \s* (\w+) } { \1\ <-\ \1\ +\ 1 } #1
-    \regex_replace_all:nnN { (\w+) \s* -- } { \1\ <-\ \1\ -\ 1 } #1
-    \regex_replace_all:nnN { -- \s* (\w+) } { \1\ <-\ \1\ -\ 1 } #1
-    \regex_replace_all:nnN { (\w+) \s* \+= \s* (.*) } { \1\ <-\ \1\ +\ \2 } #1
-    \regex_replace_all:nnN { (\w+) \s* -= \s* (.*) } { \1\ <-\ \1\ -\ \2 } #1
-    \regex_replace_all:nnN { (\w+) \s* \*= \s* (.*) } { \1\ <-\ \1\ *\ \2 } #1
+    % i++ -> i += 1 (+= as its marker, so the spacing of "+" below leaves
+    % it alone); i += 2, i -= 2 and i *= 2 are already written that way
+    \regex_replace_all:nnN { (\w+) \s* \+\+ } { \1\ @@lpjpe@@\ 1 } #1
+    \regex_replace_all:nnN { \+\+ \s* (\w+) } { \1\ @@lpjpe@@\ 1 } #1
+    \regex_replace_all:nnN { (\w+) \s* -- } { \1\ -=\ 1 } #1
+    \regex_replace_all:nnN { -- \s* (\w+) } { \1\ -=\ 1 } #1
     \regex_replace_all:nnN { && } { \ and\ } #1
     \regex_replace_all:nnN { \|\| } { \ or\ } #1
     \regex_replace_all:nnN { ! \s* (\w) } { not\ \1 } #1
-    \regex_replace_all:nnN { = } { <- } #1
     % --- the standard library -----------------------------------------------
     \regex_replace_all:nnN
       { System \s* \. \s* out \s* \. \s* print (?: ln )? \s* \( (.*) \) }
-      { print\ \1 } #1
+      { print(\1) } #1
     \regex_replace_all:nnN
       { (\w+ (?: \[ [^\]]* \] )*) \s* \. \s* (?: length | size )
         (?: \s* \( \s* \) )? }
-      { length(\1) } #1
+      { len(\1) } #1
     \regex_replace_all:nnN
       { (\w+ (?: \[ [^\]]* \] )*) \s* \. \s* charAt \s* \( ([^)]*) \) }
       { \1[\2] } #1
     \regex_replace_all:nnN { new \s+ \w+ \s* \[ ([^\]]*) \] } { new\ array[\1] } #1
-    \regex_replace_all:nnN { \b null \b } { nil } #1
+    \regex_replace_all:nnN { \b null \b } { None } #1
+    \regex_replace_all:nnN { \b true \b } { True } #1
+    \regex_replace_all:nnN { \b false \b } { False } #1
     % even out the spacing: i+j and M[i-1] are written like i + j and
     % M[i - 1].  A "-" between two letters is left alone, it joins a
     % hyphenated name (Is-Merge).
@@ -993,14 +1062,13 @@
 % Java that leaves the braces out: "if (x)" on a line of its own governs
 % exactly the next statement, and the block ends with it.  Count the control
 % lines still waiting for their statement and close them all when it
-% arrives, so one line can turn into a line plus its end lines.  A statement
-% is complete when the Java line ends in a semicolon: a line that does not
-% ("... ||" continued on the next line) is not the statement yet.
+% arrives, so one line can turn into a line plus its end markers.  A
+% statement is complete when the Java line ends in a semicolon: a line that
+% does not ("... ||" continued on the next line) is not the statement yet.
 \int_new:N  \g__latexpro_java_pending_int
 \bool_new:N \l__latexpro_java_brace_bool
 \bool_new:N \l__latexpro_java_semi_bool
 \bool_new:N \l__latexpro_java_ctrl_bool
-\bool_new:N \l__latexpro_java_cmt_bool
 \bool_new:N \l__latexpro_java_end_bool
 \str_new:N  \l__latexpro_java_src_str
 \str_new:N  \l__latexpro_java_test_str
@@ -1034,37 +1102,37 @@
     \bool_if:NT \l__latexpro_java_semi_bool
       {
         \prg_replicate:nn { \g__latexpro_java_pending_int }
-          { \seq_put_right:Nn #2 { end } }
+          { \seq_put_right:Nn #2 { @@lpjend@@ } }
         \int_gzero:N \g__latexpro_java_pending_int
       }
-    % a control line with no brace of its own now waits for one statement
-    \str_set:Ne \l__latexpro_java_test_str { \tl_trim_spaces:V #1 }
-    % a line that opens a block: it is the one that can be left waiting for
-    % its statement.  An end line (a "}") closes one, so it is neither that
-    % nor a statement -- it must not be counted as either.
-    \bool_set_false:N \l__latexpro_java_ctrl_bool
-    \regex_match:nVT { (?: \b (?: then | do ) \s* | \A else \s* ) \Z }
+    % the rewritten line, without its comment
+    \str_set_eq:NN \l__latexpro_java_test_str #1
+    \regex_replace_once:nnN { \s* (?: // | /\* ) .* \Z } { }
       \l__latexpro_java_test_str
+    \str_set:Ne \l__latexpro_java_test_str
+      { \tl_trim_spaces:V \l__latexpro_java_test_str }
+    % a line that opens a block (it ends in a colon): it is the one that can
+    % be left waiting for its statement.  An end marker (a "}") closes one,
+    % so it is neither that nor a statement -- it must not be counted as
+    % either.
+    \bool_set_false:N \l__latexpro_java_ctrl_bool
+    \regex_match:nVT { : \Z } \l__latexpro_java_test_str
       { \bool_set_true:N \l__latexpro_java_ctrl_bool }
     \bool_set_false:N \l__latexpro_java_end_bool
-    \regex_match:nVT { \A end \s* \Z } \l__latexpro_java_test_str
+    \regex_match:nVT { \A @@lpjend@@ } \l__latexpro_java_test_str
       { \bool_set_true:N \l__latexpro_java_end_bool }
     \bool_lazy_and:nnT
       { \bool_not_p:n { \l__latexpro_java_brace_bool } }
       { \l__latexpro_java_ctrl_bool }
       { \int_gincr:N \g__latexpro_java_pending_int }
-    % does the statement run on into the next line?  (\regex_match: is a
-    % protected conditional, so it has no predicate for \bool_lazy_any:n)
-    \bool_set_false:N \l__latexpro_java_cmt_bool
-    \regex_match:nVT { \A // } \l__latexpro_java_test_str
-      { \bool_set_true:N \l__latexpro_java_cmt_bool }
+    % does the statement run on into the next line?  (a line that is only a
+    % comment is empty here)
     \bool_lazy_any:nTF
       {
         { \str_if_empty_p:N \l__latexpro_java_test_str }
         { \l__latexpro_java_semi_bool }
         { \l__latexpro_java_brace_bool }
         { \l__latexpro_java_ctrl_bool }
-        { \l__latexpro_java_cmt_bool }
         { \l__latexpro_java_end_bool }
       }
       { \bool_gset_false:N \g__latexpro_java_open_bool }
@@ -1104,9 +1172,21 @@
       }
       { \__latexpro_pseudo_line_emit:n {#1} }
   }
+% One line of pseudocode.  The marker @@lpjend@@ (from the Java rewrite: a
+% block ends here) steps the indentation back out and prints nothing.
 \cs_new_protected:Npn \__latexpro_pseudo_line_emit:n #1
   {
     \str_set:Nn \l__latexpro_line_str {#1}
+    \regex_match:nVTF { \A \s* @@lpjend@@ } \l__latexpro_line_str
+      {
+        \int_decr:N \l__latexpro_depth_int
+        \int_compare:nNnT \l__latexpro_depth_int < \c_zero_int
+          { \int_zero:N \l__latexpro_depth_int }
+      }
+      { \__latexpro_pseudo_line_print: }
+  }
+\cs_new_protected:Npn \__latexpro_pseudo_line_print:
+  {
     \ifpseudoindent
       \exp_args:NNV \str_replace_all:Nnn \l__latexpro_line_str
         \c__latexpro_tab_str { ~ }
@@ -1124,8 +1204,9 @@
         { \str_foldcase:e { \seq_item:Nn \l__latexpro_words_seq { 1 } } }
       \str_set:Ne \l__latexpro_last_str
         { \str_foldcase:e { \seq_item:Nn \l__latexpro_words_seq { -1 } } }
-      % "if(x" -> "if",  "x):" -> ":"
+      % "if(x" -> "if",  "else:" -> "else",  "x):" -> ":"
       \regex_replace_once:nnN { (.)\(.* } { \1 } \l__latexpro_first_str
+      \regex_replace_once:nnN { (.) : \Z } { \1 } \l__latexpro_first_str
       \regex_replace_once:nnN { .*: \Z } { : } \l__latexpro_last_str
       % C-style braces: "}" closes like end, a trailing "{" opens like then
       \str_if_eq:NNT \l__latexpro_first_str \c_right_brace_str
@@ -1144,12 +1225,15 @@
         { \bool_set_true:N \l__latexpro_open_bool }
       \exp_args:NV \__latexpro_pseudo_head:nT \l__latexpro_first_str
         {
-          % a one-liner ("if x then break") has then/do before its last word
+          % a one-liner ("if x then break", "if x: break") has then, do or
+          % a colon before its last word
           \seq_pop_right:NN \l__latexpro_words_seq \l_tmpa_tl
           \bool_set_true:N \l_tmpa_bool
           \seq_map_inline:Nn \l__latexpro_words_seq
             {
               \str_case:enT { \str_foldcase:n {##1} } { {then}{} {do}{} }
+                { \bool_set_false:N \l_tmpa_bool }
+              \regex_match:nnT { : \Z } {##1}
                 { \bool_set_false:N \l_tmpa_bool }
             }
           \bool_if:NT \l_tmpa_bool

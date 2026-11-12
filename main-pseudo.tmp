@@ -1,5 +1,5 @@
 function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
-    if $\latexprocodemath{x}_{\latexprocodemath{length}}$ + $\latexprocodemath{z}_{\latexprocodemath{length}}$ $\neq$ $\latexprocodemath{z}_{\latexprocodemath{length}}$ then //If the lengths of x and y are not the same, then it cannot be a merge of the two...
+    if $\latexprocodemath{x}_{\latexprocodemath{length}}$ + $\latexprocodemath{z}_{\latexprocodemath{length}}$ != $\latexprocodemath{z}_{\latexprocodemath{length}}$ then //If the lengths of x and y are not the same, then it cannot be a merge of the two...
         return false
     end
 
@@ -8,18 +8,18 @@ function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
         return true
     end
 
-    for a = 0 $\to$ j-1 //Bottom up programming :)
-        for b = 0 $\to$ i-1
+    for a = 0 -> j-1 //Bottom up programming :)
+        for b = 0 -> i-1
             $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, b, a)
         end
     end
 
-    if i == 0 and j $>$ 0 then
+    if i == 0 and j > 0 then
         M[i,j] = $\latexprocodemath{z}_{\latexprocodemath{j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and M[0,j-1]
         return M[i,j]
     end
 
-    if i $>$ 0 and j == 0 then
+    if i > 0 and j == 0 then
         M[i,j] = $\latexprocodemath{z}_{\latexprocodemath{i}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and M[i-1,0]
 
         //Track B
@@ -30,7 +30,7 @@ function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
         return M[i,j]
     end
 
-    if i $>$ 0 and j $>$ 0 then
+    if i > 0 and j > 0 then
         M[i,j] = ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and M[i,j-1]) or ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and M[i-1,j])
 
         //Track B
@@ -48,7 +48,7 @@ function $\mbox{\latexprohyphenname{Print-Merge}}$(x, y,z)
 
     //Go through B and print if it is seen as a merge.
     if $\mbox{\latexprohyphenname{Is-Merge}}$ then
-        for n = 1 $\to$ $\latexprocodemath{z}_{\latexprocodemath{length}}$ do
+        for n = 1 -> $\latexprocodemath{z}_{\latexprocodemath{length}}$ do
             if B[n] then
                 //Print
                 print(n)
