@@ -10,8 +10,6 @@ function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, i, j)
 
     for a = 0 to j-1 do //Bottom up programming :)
         for b = 0 to i-1 do
-    for a = 0 -> j-1 //Bottom up programming :)
-        for b = 0 -> i-1
             $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z, b, a)
         end
     end
