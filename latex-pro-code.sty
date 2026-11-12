@@ -43,10 +43,12 @@
 %                                  turned into a colon and indentation
 %                                  (also \begin{pseudo}[from=java])
 %   \pseudoindentfalse             keep the file's own indentation
+%   \pseudoendtrue                 print the end lines of hand-written
+%                                  pseudocode (they are left out by default)
 %   Restyle with \lstdefinestyle{latexpro-python}{...} (or latexpro-pseudo).
 %
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
-\ProvidesPackage{latex-pro-code}[2026/11/12 v0.8 latex-pro: code listings]
+\ProvidesPackage{latex-pro-code}[2026/11/12 v0.9 latex-pro: code listings]
 
 \RequirePackage{listings}
 \RequirePackage{amstext}
@@ -796,6 +798,7 @@
   style=latexpro-pseudo-literate,
 }
 \newif\ifpseudoindent \pseudoindenttrue
+\newif\ifpseudoend \pseudoendfalse
 \ExplSyntaxOn
 \cs_generate_variant:Nn \str_case:nnT { Vn , en }
 \cs_generate_variant:Nn \str_foldcase:n { e }
@@ -1172,12 +1175,30 @@
       }
       { \__latexpro_pseudo_line_emit:n {#1} }
   }
-% One line of pseudocode.  The marker @@lpjend@@ (from the Java rewrite: a
-% block ends here) steps the indentation back out and prints nothing.
+% One line of pseudocode.  A line that only closes a block steps the
+% indentation back out and prints nothing: the marker @@lpjend@@ (from the
+% Java rewrite), and a hand-written end line (end, end if, endfor, done,
+% fi ...), so pseudocode typed with end lines comes out in the same
+% Python style as Java does.  \pseudoendtrue prints the end lines again.
+\bool_new:N \l__latexpro_pseudo_drop_bool
 \cs_new_protected:Npn \__latexpro_pseudo_line_emit:n #1
   {
     \str_set:Nn \l__latexpro_line_str {#1}
-    \regex_match:nVTF { \A \s* @@lpjend@@ } \l__latexpro_line_str
+    \bool_set_false:N \l__latexpro_pseudo_drop_bool
+    \regex_match:nVT { \A \s* @@lpjend@@ } \l__latexpro_line_str
+      { \bool_set_true:N \l__latexpro_pseudo_drop_bool }
+    \ifpseudoend \else
+      \regex_match:nVT
+        {
+          (?i) \A \s*
+          (?: end (?: \s+ [a-z]+ )? | endif | endfor | endwhile | endfunction
+            | endprocedure | endloop | done | fi )
+          \s* (?: (?: // | /\* ) .* )? \Z
+        }
+        \l__latexpro_line_str
+        { \bool_set_true:N \l__latexpro_pseudo_drop_bool }
+    \fi
+    \bool_if:NTF \l__latexpro_pseudo_drop_bool
       {
         \int_decr:N \l__latexpro_depth_int
         \int_compare:nNnT \l__latexpro_depth_int < \c_zero_int
