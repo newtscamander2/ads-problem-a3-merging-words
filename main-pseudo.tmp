@@ -1,4 +1,4 @@
-function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z)
+function $\mbox{\latexprohyphenname{Is-Merge}}$(M, x, y, z)
     for i = 0 $\rightarrow$ $\latexprocodemath{x}_{\latexprocodemath{length}}$ to
         for j = 0 $\rightarrow$ $\latexprocodemath{y}_{\latexprocodemath{length}}$ to
             if i == 0 and j == 0 then
@@ -10,12 +10,6 @@ function $\mbox{\latexprohyphenname{Is-Merge-Constituted}}$(M, B, x, y, z)
             if i > 0 and j == 0 then
                 M[i,j] = $\latexprocodemath{z}_{\latexprocodemath{i}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and M[i-1, 0]
 
-                if M[i,j]  then
-                    B[i+j] = true
-
             if i > 0 and j > 0 then
-                if $\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and M[i,j-1] and !($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and M[i-1,j]) then
-                    B[i+j] = true
-
                 M[i,j] = ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{y}_{\latexprocodemath{j}}$ and M[i,j-1]) or ($\latexprocodemath{z}_{\latexprocodemath{i+j}}$ == $\latexprocodemath{x}_{\latexprocodemath{i}}$ and M[i-1,j])
     return M[$\latexprocodemath{x}_{\latexprocodemath{length}}$, $\latexprocodemath{y}_{\latexprocodemath{length}}$]

@@ -1,4 +1,4 @@
-	function Is-Merge-Constituted(M, B, x, y, z)
+	function Is-Merge(M, x, y, z)
 	for i = 0 \rightarrow x_{length} to
 		for j = 0 \rightarrow y_{length} to
 			if i == 0 and j == 0 then
@@ -11,20 +11,12 @@
 
 			if i > 0 and j == 0 then
 				M[i,j] = z_i == x_i and M[i-1, 0]
-
-				if M[i,j]  then
-					B[i+j] = true
-				end
 			end
 
 			if i > 0 and j > 0 then
-				if z_{i+j} == y_j and M[i,j-1] and !(z_{i+j} == x_i and M[i-1,j]) then
-					B[i+j] = true
-				end
-
 				M[i,j] = (z_{i+j} == y_j and M[i,j-1]) or (z_{i+j} == x_i and M[i-1,j])
 			end
 		end
-	end
-	return M[x_length, y_length]
+		end
+		return M[x_length, y_length]
 	end
