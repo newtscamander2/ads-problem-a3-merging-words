@@ -10,7 +10,7 @@
 
 	for a = 0 to j-1 do //Bottom up programming :)
 	for b = 0 to i-1 do
-		Is-Merge-Constituted(M, B, x, y, z, b, a)
+	Is-Merge-Constituted(M, B, x, y, z, b, a)
 	end
 	end
 

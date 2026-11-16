@@ -83,21 +83,23 @@ test
 
 	boolean[][] M = new boolean[x.length()][y.length()];
 
-	for(int i = 0; i < M.length; i++)
-	for(int j = 0; j < M[i].length; j++)
+	for(int i = 0; i < M.length; i++){
+			for(int j = 0; j < M[i].length; j++){
 
-	if(i == 0 && j == 0)
-	M[i][j] = true;
+					if(i == 0 && j == 0)
+					M[i][j] = true;
 
-	if(i == 0 && j > 0)
-	M[i][j] = z.charAt(j) == y.charAt(j) && M[0][j - 1];
+					if(i == 0 && j > 0)
+					M[i][j] = z.charAt(j) == y.charAt(j) && M[0][j - 1];
 
-	if(i > 0 && j == 0)
-	M[i][j] = z.charAt(i) == x.charAt(i) && M[i - 1][0];
+					if(i > 0 && j == 0)
+					M[i][j] = z.charAt(i) == x.charAt(i) && M[i - 1][0];
 
-	if(i > 0 && j > 0)
-	M[i][j] = (z.charAt(i + j) == y.charAt(j) && M[i][j - 1]) ||
-	(z.charAt(i+j) == x.charAt(i) && M[i-1][j]);
+					if(i > 0 && j > 0)
+					M[i][j] = (z.charAt(i + j) == y.charAt(j) && M[i][j - 1]) ||
+					(z.charAt(i+j) == x.charAt(i) && M[i-1][j]);
+				}
+		}
 
 \end{pseudo}
 
@@ -180,7 +182,7 @@ In the pseudo code we have defined a function called \method{Is-Merge-Constitute
 
 As it can be seen below the recursive call is changed to \method{Is-Merge-Constituted} instead of \method{Is-Merge}. We create a new array called B that is initially empty. When $i>0$ and $j==0$ we modify $M[i,j]$ as we did before but we also check that if $M[i,j]==true$ then we set $M[i,j]$ to true as well!
 
-Furthermore, if both $i>0$ and $j>0$ we still modify $M[i,j]$ and we then also modify our array B. Specifically, we check that if $M[i,j]==true$ and $z_{i+j}==x_i$ we set $B[i,j]$ to true.
+Furthermore, if both $i>0$ and $j>0$ we still modify $M[i,j]$ and we then also modify our array B. Specifically, we check that if $M[i,j]==true$ and $z_{i+j}==x_i$ we set $B[i+j]$ to true.
 
 At the end we have a \method{print-merge} function that first stores the result from a call to \method{Is-Merge-Constituted} into a variable called Is-Merge. We then go through each element in B from 1 to the length of z. If the element $B[n]$ stores the value true, we print n. Otherwise, we just go to the next element of B. We end up printing a sequence of characters that is the indexes of z that consitute the subsequence equal to to x.
 
@@ -197,7 +199,7 @@ At the end we have a \method{print-merge} function that first stores the result 
 
 	for a = 0 to j-1 do //Bottom up programming :)
 	for b = 0 to i-1 do
-		Is-Merge-Constituted(M, B, x, y, z, b, a)
+	Is-Merge-Constituted(M, B, x, y, z, b, a)
 	end
 	end
 
