@@ -132,40 +132,27 @@ The different if-statements are made from the piecewise-function given in \booke
 We use dynamic programming to go bottom up and calculate the required values for determining our end statement. All elements from left to right get filled out, like in the LCS algorithm in CLRS.
 
 \begin{pseudo}[span]
-	function Is-Merge(M, x, y, z, i, j)
-	if x_length + z_length != z_length then
-	return false
-	end
+	function Is-Merge(M, x, y, z)
+	for i = 0 \rightarrow x_{length} to
+		for j = 0 \rightarrow y_{length} to
+			if i == 0 and j == 0 then
+				M[i,j] = true
+			end
 
-	if i == 0 and j == 0 then
-	M[i,j] = true
+			if i == 0 and j > 0 then
+				M[i,j] = z_j == y_j and M[0,j-1]
+			end
 
-	return true
-	end
+			if i > 0 and j == 0 then
+				M[i,j] = z_i == x_i and M[i-1, 0]
+			end
 
-	for a = 0 to j-1 do //Bottom up programming :)
-	for b = 0 to i-1 do
-	Is-Merge(M, x, y, z, b, a)
-	end
-	end
-
-	if i == 0 and j > 0 then
-	M[i,j] = z_j == y_j and M[0,j-1]
-
-	return M[i,j]
-	end
-
-	if i > 0 and j == 0 then
-	M[i,j] = z_i == x_i and M[i-1,0]
-
-	return M[i,j]
-	end
-
-	if i > 0 and j > 0 then
-	M[i,j] = (z_{i+j} == y_j and M[i,j-1]) or (z_{i+j} == x_i and M[i-1,j])
-
-	return M[i,j]
-	end
+			if i > 0 and j > 0 then
+				M[i,j] = (z_{i+j} == y_j and M[i,j-1]) or (z_{i+j} == x_i and M[i-1,j])
+			end
+		end
+		end
+		return M[x_length, y_length]
 	end
 \end{pseudo}
 The \method{Is-Merge} function runs through every letter in both \variable{x} and \variable{y}. It is therefore $O(nm)$ where $n$ is the length of \variable{x} and $m$ is the length of \variable{y}.
@@ -185,63 +172,35 @@ Furthermore, if both $i>0$ and $j>0$ we still modify $M[i,j]$ and we then also m
 At the end we have a \method{print-merge} function that first stores the result from a call to \method{Is-Merge-Constituted} into a variable called Is-Merge. We then go through each element in B from 1 to the length of z. If the element $B[n]$ stores the value true, we print n. Otherwise, we just go to the next element of B. We end up printing a sequence of characters that is the indexes of z that consitute the subsequence equal to to x.
 
 \begin{pseudo}[span]
-	function Is-Merge-Constituted(M, B, x, y, z, i, j)
-	if x_length + z_length != z_length then //If the lengths of x and y are not the same, then it cannot be a merge of the two...
-	return false
-	end
+	function Is-Merge-Constituted(M, B, x, y, z)
+	for i = 0 \rightarrow x_{length} to
+		for j = 0 \rightarrow y_{length} to
+			if i == 0 and j == 0 then
+				M[i,j] = true
+			end
 
-	if i == 0 and j == 0 then
-	M[i,j] = true
-	return true
-	end
+			if i == 0 and j > 0 then
+				M[i,j] = z_j == y_j and M[0,j-1]
+			end
 
-	for a = 0 to j-1 do //Bottom up programming :)
-	for b = 0 to i-1 do
-		Is-Merge-Constituted(M, B, x, y, z, b, a)
-	end
-	end
+			if i > 0 and j == 0 then
+				M[i,j] = z_i == x_i and M[i-1, 0]
 
-	if i == 0 and j > 0 then
-	M[i,j] = z_j == y_j and M[0,j-1]
-	return M[i,j]
-	end
+				if M[i,j]  then
+					B[i+j] = true
+				end
+			end
 
-	if i > 0 and j == 0 then
-	M[i,j] = z_i == x_i and M[i-1,0]
+			if i > 0 and j > 0 then
+				if z_{i+j} == y_j and M[i,j-1] and !(z_{i+j} == x_i and M[i-1,j]) then
+					B[i+j] = true
+				end
 
-	//Track B
-	if M[i,j] == true then
-	B[i] = true;
+				M[i,j] = (z_{i+j} == y_j and M[i,j-1]) or (z_{i+j} == x_i and M[i-1,j])
+			end
+		end
 	end
-
-	return M[i,j]
-	end
-
-	if i > 0 and j > 0 then
-	M[i,j] = (z_{i+j} == y_j and M[i,j-1]) or (z_{i+j} == x_i and M[i-1,j])
-
-	//Track B
-	if M[i,j] == true and z_{i+j} == x_i then
-	B[i+j] = true;
-	end
-
-	return M[i,j]
-	end
-	end
-
-	function Print-Merge(x, y,z)
-	Is-Merge = Is-Merge-Constituted(M, B, x, y, z, x_length, y_length)
-
-	//Go through B and print if it is seen as a merge.
-	if Is-Merge then
-	for n = 1 -> z_length do
-	if B[n] then
-	//Print
-	print(n)
-	end
-	end
-	end
-
+	return M[x_length, y_length]
 	end
 \end{pseudo}
 
