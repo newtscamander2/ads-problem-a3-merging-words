@@ -165,11 +165,11 @@ Here they use the idea of storing another array \variable{B} in order to
 
 In the pseudo code we have defined a function called \method{Is-Merge-Constituted}. It is a modification of \method{Is-Merge} but with some important differences. Essentially, \method{Is-Merge} is extended to also report the indexes of z that constitute the subsequence of equal to x.
 
-As it can be seen below the recursive call is changed to \method{Is-Merge-Constituted} instead of \method{Is-Merge}. We create a new array called B that is initially empty. When $i>0$ and $j==0$ we modify $M[i,j]$ as we did before but we also check that if $M[i,j]==true$ then we set $M[i,j]$ to true as well!
+In \method{Is-Merge-Consituted} we use an array \variable{B} to store the direction in which we have to go in order to find the common indeces of \variable{x}.
 
-Furthermore, if both $i>0$ and $j>0$ we still modify $M[i,j]$ and we then also modify our array B. Specifically, we check that if $M[i,j]==true$ and $z_{i+j}==x_i$ we set $B[i,j]$ to true.
+If the element in the matrix above our current location is true we set B[i,j] to "$\uparrow$". If the element to the left is true and ours also is we create a "$\leftarrow$".
 
-At the end we have a \method{print-merge} function that first stores the result from a call to \method{Is-Merge-Constituted} into a variable called Is-Merge. We then go through each element in B from 1 to the length of z. If the element $B[n]$ stores the value true, we print n. Otherwise, we just go to the next element of B. We end up printing a sequence of characters that is the indexes of z that consitute the subsequence equal to to x.
+To print the sequence we start in the bottom left. Here we follow the arrows, and when we have a "$\uparrow$" followed by a ”$\leftarrow$" we print our index, since that is the index of z where x appears.
 
 \begin{pseudo}[span]
 	function Is-Merge-Constituted(M, B, x, y, z)
@@ -205,7 +205,7 @@ At the end we have a \method{print-merge} function that first stores the result 
 	return M[x_length, y_length]
 	end
 
-	function PrintIndexes(M,B)
+	function Print-Merge(M,B)
 		i = M_{rows}
 		j = M_{columns}
 
